@@ -1,0 +1,164 @@
+package DBD::MySQL::Server::Instance::Innodb;
+
+use strict;
+
+our @ISA = qw(DBD::MySQL::Server::Instance);
+
+my %ERRORS=( OK => 0, WARNING => 1, CRITICAL => 2, UNKNOWN => 3 );
+my %ERRORCODES=( 0 => 'OK', 1 => 'WARNING', 2 => 'CRITICAL', 3 => 'UNKNOWN' );
+
+sub new {
+  my $class = shift;
+  my %params = @_;
+  my $self = {
+    handle => $params{handle},
+    internals => undef,
+    warningrange => $params{warningrange},
+    criticalrange => $params{criticalrange},
+  };
+  bless $self, $class;
+  $self->init(%params);
+  return $self;
+}
+
+sub init {
+  my $self = shift;
+  my %params = @_;
+  $self->init_nagios();
+  if ($params{mode} =~ /server::instance::innodb/) {
+    $self->{internals} =
+        DBD::MySQL::Server::Instance::Innodb::Internals->new(%params);
+  }
+}
+
+sub nagios {
+  my $self = shift;
+  my %params = @_;
+  if ($params{mode} =~ /server::instance::innodb/) {
+    $self->{internals}->nagios(%params);
+    $self->merge_nagios($self->{internals});
+  }
+}
+
+
+package DBD::MySQL::Server::Instance::Innodb::Internals;
+
+use strict;
+
+our @ISA = qw(DBD::MySQL::Server::Instance::Innodb);
+
+our $internals; # singleton, nur ein einziges mal instantiierbar
+
+sub new {
+  my $class = shift;
+  my %params = @_;
+  unless ($internals) {
+    $internals = {
+      handle => $params{handle},
+      bufferpool_hitrate => undef,
+      wait_free => undef,
+      log_waits => undef,
+      warningrange => $params{warningrange},
+      criticalrange => $params{criticalrange},
+    };
+    bless($internals, $class);
+    $internals->init(%params);
+  }
+  return($internals);
+}
+
+sub init {
+  my $self = shift;
+  my %params = @_;
+  my $dummy;
+  $self->debug("enter init");
+  $self->init_nagios();
+  if ($params{mode} =~ /server::instance::innodb::bufferpool::hitrate/) {
+    ($dummy, $self->{bufferpool_reads}) 
+        = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Innodb_buffer_pool_reads'
+    });
+    ($dummy, $self->{bufferpool_read_requests}) 
+        = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Innodb_buffer_pool_read_requests'
+    });
+    if (! defined $self->{bufferpool_reads}) {
+      $self->add_nagios_critical("no innodb buffer pool info available");
+    } else {
+      $self->valdiff(\%params, qw(bufferpool_reads
+          bufferpool_read_requests));
+      $self->{bufferpool_hitrate_now} =
+          $self->{delta_bufferpool_read_requests} > 0 ?
+          100 - (100 * $self->{delta_bufferpool_reads} / 
+              $self->{delta_bufferpool_read_requests}) : 100;
+      $self->{bufferpool_hitrate} =
+          $self->{bufferpool_read_requests} > 0 ?
+          100 - (100 * $self->{bufferpool_reads} /
+              $self->{bufferpool_read_requests}) : 100;
+    }
+  } elsif ($params{mode} =~ /server::instance::innodb::bufferpool::waitfree/) {
+    ($dummy, $self->{bufferpool_wait_free})
+        = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Innodb_buffer_pool_wait_free'
+    });
+    if (! defined $self->{bufferpool_wait_free}) {
+      $self->add_nagios_critical("no innodb buffer pool info available");
+    } else {
+      $self->valdiff(\%params, qw(bufferpool_wait_free));
+      $self->{bufferpool_wait_free_rate} =
+          $self->{delta_bufferpool_wait_free} / $self->{delta_timestamp};
+    }
+  } elsif ($params{mode} =~ /server::instance::innodb::logwaits/) {
+    ($dummy, $self->{log_waits})
+        = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Innodb_log_waits'
+    });
+    if (! defined $self->{log_waits}) {
+      $self->add_nagios_critical("no innodb log info available");
+    } else {
+      $self->valdiff(\%params, qw(log_waits));
+      $self->{log_waits_rate} =
+          $self->{delta_log_waits} / $self->{delta_timestamp};
+    }
+  }
+}
+
+sub nagios {
+  my $self = shift;
+  my %params = @_;
+  if (! $self->{nagios_level}) {
+    if ($params{mode} =~ /server::instance::innodb::bufferpool::hitrate/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{bufferpool_hitrate}, "99:", "95:"),
+          sprintf "innodb buffer pool hitrate at %.2f%%",
+          $self->{bufferpool_hitrate});
+      $self->add_perfdata(sprintf "bufferpool_hitrate=%.2f%%;%s;%s;0;100",
+          $self->{bufferpool_hitrate},
+          $self->{warningrange}, $self->{criticalrange});
+      $self->add_perfdata(sprintf "bufferpool_hitrate_now=%.2f%%",
+          $self->{bufferpool_hitrate_now});
+    } elsif ($params{mode} =~ /server::instance::innodb::bufferpool::waitfree/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{bufferpool_wait_free_rate}, "1", "10"),
+          sprintf "%ld innodb buffer pool waits in %ld seconds (%.4f/sec)",
+          $self->{delta_bufferpool_wait_free}, $self->{delta_timestamp},
+          $self->{bufferpool_wait_free_rate});
+      $self->add_perfdata(sprintf "bufferpool_free_waits_rate=%.4f;%s;%s;0;100",
+          $self->{bufferpool_wait_free_rate},
+          $self->{warningrange}, $self->{criticalrange});
+    } elsif ($params{mode} =~ /server::instance::innodb::logwaits/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{log_waits_rate}, "1", "10"),
+          sprintf "%ld innodb log waits in %ld seconds (%.4f/sec)",
+          $self->{delta_log_waits}, $self->{delta_timestamp},
+          $self->{log_waits_rate});
+      $self->add_perfdata(sprintf "innodb_log_waits_rate=%.4f;%s;%s;0;100",
+          $self->{log_waits_rate},
+          $self->{warningrange}, $self->{criticalrange});
+    }
+  }
+}
+
+
+1;
+

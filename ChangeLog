@@ -1,0 +1,33 @@
+###############################################
+# Changelog of the check_mysql_health plugin #
+###############################################
+
+2.0.5 2009-05-08
+- fixed another bug in master-slave modes. (Thanks Thomas Mueller)
+- fixed a bug in bufferpool-wait-free. (Thanks Matthias Flacke)
+- fixed a bug in the PNP template. (Thanks Matthias Flacke)
+- slave-lag now handles failed io threads. (Thanks Greg)
+- added a --lookback parameter which changes the time range for "_now"-perfdata
+
+2.0.4
+- fixed a bug in --mode cluster-ndbd-running where dead api nodes were overseen
+- fixed a bug in master-slave modes. (Thanks Arkadiusz Miskiewicz)
+
+2.0.3 
+- fixed a bug with 0 warning/critical
+- fixed a bug in long-running-procs (affects only mysql 5.0 and below). (Thanks Bodo Schulz)
+
+2.0.2
+- $NAGIOS__HOSTMYSQL_HOST etc. is now possible
+
+2.0.1 2009-03-09
+- fixed a (harmless) bug which caused uninitialized-messages. (Thanks John Alberts & Thomas Borger)
+- enabled password-less login to localhost.
+
+2.0 2009-03-06
+- This is the first release of the new plugin check_mysql_health
+  It replaces check_mysql_perf which is a nightmare to install
+  It is written in Perl
+  It can use either DBD::mysql, the mysql command or DBD::SQLrelay
+  It can monitor mysql clusters (the ndb stuff)
+  It can execute custom sql statements
