@@ -7,7 +7,6 @@
 - fixed a bug in bufferpool-wait-free. (Thanks Matthias Flacke)
 - fixed a bug in the PNP template. (Thanks Matthias Flacke)
 - slave-lag now handles failed io threads. (Thanks Greg)
-- added a --lookback parameter which changes the time range for "_now"-perfdata
 
 2.0.4
 - fixed a bug in --mode cluster-ndbd-running where dead api nodes were overseen

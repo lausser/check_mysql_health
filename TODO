@@ -1,1 +1,3 @@
 a lot
+
+- added a --lookback parameter which changes the time range for "_now"-perfdata
