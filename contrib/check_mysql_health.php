@@ -139,9 +139,9 @@ foreach ($DS as $i) {
         foreach ($DS as $ii) {
           if(preg_match('/^keycache_hitrate$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:hitrate=$rrdfile:$DS[$ii]:AVERAGE:reduce=LAST " ;
-            $def[$defcnt] .= "CDEF:ar=hitrate,$critmin,LE,hitrate,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
-            $def[$defcnt] .= "CDEF:ay=hitrate,$warnmin,LE,hitrate,$critmin,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
-            $def[$defcnt] .= "CDEF:ag=hitrate,100,LE,hitrate,$warnmin,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
+            $def[$defcnt] .= "CDEF:ar=hitrate,$CRIT_MIN[$ii],LE,hitrate,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
+            $def[$defcnt] .= "CDEF:ay=hitrate,$WARN_MIN[$ii],LE,hitrate,$CRIT_MIN[$ii],GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
+            $def[$defcnt] .= "CDEF:ag=hitrate,100,LE,hitrate,$WARN_MIN[$ii],GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
             $def[$defcnt] .= "AREA:ag#$green: " ;
             $def[$defcnt] .= "AREA:ay#$yellow: " ;
             $def[$defcnt] .= "AREA:ar#$red: " ;
