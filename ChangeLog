@@ -2,11 +2,12 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
-2.0.5 2009-05-08
+2.0.5 2009-09-21
 - fixed another bug in master-slave modes. (Thanks Thomas Mueller)
 - fixed a bug in bufferpool-wait-free. (Thanks Matthias Flacke)
 - fixed a bug in the PNP template. (Thanks Matthias Flacke)
 - slave-lag now handles failed io threads. (Thanks Greg)
+- fixed a bug in connections with non-standard sockets (Thanks Stephan Huiser)
 
 2.0.4
 - fixed a bug in --mode cluster-ndbd-running where dead api nodes were overseen

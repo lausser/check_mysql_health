@@ -684,7 +684,7 @@ sub init {
     $self->{dsn} .= sprintf ";host=%s", $self->{hostname};
     $self->{dsn} .= sprintf ";port=%s", $self->{port}
         unless $self->{socket} || $self->{hostname} eq 'localhost';
-    $self->{dsn} .= sprintf ";socket=%s", $self->{socket} 
+    $self->{dsn} .= sprintf ";mysql_socket=%s", $self->{socket} 
         if $self->{socket};
   }
   if (! exists $self->{errstr}) {
