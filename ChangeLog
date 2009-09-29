@@ -2,6 +2,9 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1 
+- parameter --lookback uses custom intervals for _now-values
+
 2.0.5 2009-09-21
 - fixed another bug in master-slave modes. (Thanks Thomas Mueller)
 - fixed a bug in bufferpool-wait-free. (Thanks Matthias Flacke)
