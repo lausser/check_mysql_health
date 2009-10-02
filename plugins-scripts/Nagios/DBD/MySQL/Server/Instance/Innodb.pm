@@ -131,8 +131,8 @@ sub nagios {
     if ($params{mode} =~ /server::instance::innodb::bufferpool::hitrate/) {
       my $refval = 'bufferpool_hitrate'.($params{lookback} ? '_now' : '');
       $self->add_nagios(
-          $self->check_thresholds($refval, "99:", "95:"),
-              sprintf "innodb buffer pool hitrate at %.2f%%", $refval);
+          $self->check_thresholds($self->{refkey}, "99:", "95:"),
+              sprintf "innodb buffer pool hitrate at %.2f%%", $self->{refkey});
       $self->add_perfdata(sprintf "bufferpool_hitrate=%.2f%%;%s;%s;0;100",
           $self->{bufferpool_hitrate},
           $self->{warningrange}, $self->{criticalrange});
