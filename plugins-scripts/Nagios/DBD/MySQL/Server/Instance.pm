@@ -347,7 +347,7 @@ sub nagios {
       $self->add_perfdata(sprintf "tablelock_contention_now=%.2f%%",
           $self->{table_lock_contention_now});
     } elsif ($params{mode} =~ /server::instance::tableindexusage/) {
-      my $refkey = 'table_lock_contention'.($params{lookback} ? '_now' : '');
+      my $refkey = 'index_usage'.($params{lookback} ? '_now' : '');
       $self->add_nagios(
           $self->check_thresholds($self->{$refkey}, "90:", "80:"),
               sprintf "index usage  %.2f%%", $self->{$refkey});
