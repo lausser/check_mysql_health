@@ -126,12 +126,13 @@ sub init {
 sub nagios {
   my $self = shift;
   my %params = @_;
+  my $now = $params{lookback} ? '_now' : '';
   if (! $self->{nagios_level}) {
     if ($params{mode} =~ /server::instance::innodb::bufferpool::hitrate/) {
+      my $refval = 'bufferpool_hitrate'.($params{lookback} ? '_now' : '');
       $self->add_nagios(
-          $self->check_thresholds($self->{bufferpool_hitrate}, "99:", "95:"),
-          sprintf "innodb buffer pool hitrate at %.2f%%",
-          $self->{bufferpool_hitrate});
+          $self->check_thresholds($refval, "99:", "95:"),
+              sprintf "innodb buffer pool hitrate at %.2f%%", $refval);
       $self->add_perfdata(sprintf "bufferpool_hitrate=%.2f%%;%s;%s;0;100",
           $self->{bufferpool_hitrate},
           $self->{warningrange}, $self->{criticalrange});

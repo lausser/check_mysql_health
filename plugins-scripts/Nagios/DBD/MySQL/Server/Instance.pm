@@ -257,9 +257,10 @@ sub nagios {
           $self->{threads_connected},
           $self->{warningrange}, $self->{criticalrange});
     } elsif ($params{mode} =~ /server::instance::threadcachehitrate/) {
+      my $refval = 'threadcache_hitrate'.($params{lookback} ? '_now' : '');
       $self->add_nagios(
-          $self->check_thresholds($self->{threadcache_hitrate}, "90:", "80:"),
-          sprintf "thread cache hitrate %.2f%%", $self->{threadcache_hitrate});
+          $self->check_thresholds($refval, "90:", "80:"),
+          sprintf "thread cache hitrate %.2f%%", $refval);
       $self->add_perfdata(sprintf "thread_cache_hitrate=%.2f%%;%s;%s",
           $self->{threadcache_hitrate},
           $self->{warningrange}, $self->{criticalrange});
@@ -268,14 +269,16 @@ sub nagios {
       $self->add_perfdata(sprintf "connections_per_sec=%.2f",
           $self->{connections_per_sec});
     } elsif ($params{mode} =~ /server::instance::querycachehitrate/) {
+      my $refval = 'querycache_hitrate'.($params{lookback} ? '_now' : '');
       if ((lc $self->{have_query_cache} eq 'yes') && ($self->{query_cache_size})) {
         $self->add_nagios(
-            $self->check_thresholds($self->{querycache_hitrate}, "90:", "80:"),
-            sprintf "query cache hitrate %.2f%%", $self->{querycache_hitrate});
+            $self->check_thresholds($refval, "90:", "80:"),
+            sprintf "query cache hitrate %.2f%%", $refval);
       } else {
-        $self->check_thresholds($self->{querycache_hitrate}, "90:", "80:");
+        $self->check_thresholds($refval, "90:", "80:");
         $self->add_nagios_ok(
-            sprintf "query cache hitrate %.2f%% (because it's turned off)", $self->{querycache_hitrate});
+            sprintf "query cache hitrate %.2f%% (because it's turned off)",
+            $self->{querycache_hitrate});
       }
       $self->add_perfdata(sprintf "qcache_hitrate=%.2f%%;%s;%s",
           $self->{querycache_hitrate},
@@ -327,16 +330,16 @@ sub nagios {
       $self->add_perfdata(sprintf "tablecache_fillrate=%.2f%%",
           $self->{tablecache_fillrate});
     } elsif ($params{mode} =~ /server::instance::tablelockcontention/) {
+      my $refval = 'table_lock_contention'.($params{lookback} ? '_now' : '');
       if ($self->{uptime} > 10800) { # MySQL Bug #30599
         $self->add_nagios(
-            $self->check_thresholds($self->{table_lock_contention}, "1", "2"),
-            sprintf "table lock contention %.2f%%",
-            $self->{table_lock_contention});
+            $self->check_thresholds($refval, "1", "2"),
+                sprintf "table lock contention %.2f%%", $refval);
       } else {
-        $self->check_thresholds($self->{table_lock_contention}, "1", "2");
+        $self->check_thresholds($refval, "1", "2");
         $self->add_nagios_ok(
             sprintf "table lock contention %.2f%% (uptime < 10800)",
-            $self->{table_lock_contention});
+            $refval);
       }
       $self->add_perfdata(sprintf "tablelock_contention=%.2f%%;%s;%s",
           $self->{table_lock_contention},
@@ -344,20 +347,21 @@ sub nagios {
       $self->add_perfdata(sprintf "tablelock_contention_now=%.2f%%",
           $self->{table_lock_contention_now});
     } elsif ($params{mode} =~ /server::instance::tableindexusage/) {
+      my $refval = 'table_lock_contention'.($params{lookback} ? '_now' : '');
       $self->add_nagios(
-          $self->check_thresholds($self->{index_usage}, "90:", "80:"),
-          sprintf "index usage  %.2f%%",
-          $self->{index_usage});
+          $self->check_thresholds($refval, "90:", "80:"),
+              sprintf "index usage  %.2f%%", $refval);
       $self->add_perfdata(sprintf "index_usage=%.2f%%;%s;%s",
           $self->{index_usage},
           $self->{warningrange}, $self->{criticalrange});
       $self->add_perfdata(sprintf "index_usage_now=%.2f%%",
           $self->{index_usage_now});
     } elsif ($params{mode} =~ /server::instance::tabletmpondisk/) {
+      my $refval = 'pct_tmp_on_disk'.($params{lookback} ? '_now' : '');
       $self->add_nagios(
-          $self->check_thresholds($self->{pct_tmp_on_disk}, "25", "50"),
-          sprintf "%.2f%% of %d tables were created on disk",
-          $self->{pct_tmp_on_disk}, $self->{delta_created_tmp_tables});
+          $self->check_thresholds($refval, "25", "50"),
+              sprintf "%.2f%% of %d tables were created on disk",
+              $refval, $self->{delta_created_tmp_tables});
       $self->add_perfdata(sprintf "pct_tmp_table_on_disk=%.2f%%;%s;%s",
           $self->{pct_tmp_on_disk},
           $self->{warningrange}, $self->{criticalrange});

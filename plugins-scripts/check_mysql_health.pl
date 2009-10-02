@@ -429,7 +429,7 @@ my %params = (
     name => $commandline{name},
     name2 => $commandline{name2} || $commandline{name},
     units => $commandline{units},
-    lookback => $commandline{lookback},
+    lookback => $commandline{lookback} || 0,
     eyecandy => $commandline{eyecandy},
     statefilesdir => $STATEFILESDIR,
 );
