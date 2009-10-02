@@ -102,7 +102,7 @@ sub nagios {
   my %params = @_;
   if (! $self->{nagios_level}) {
     if ($params{mode} =~ /server::instance::myisam::keycache::hitrate/) {
-      my $refkey = 'table_lock_contention'.($params{lookback} ? '_now' : '');
+      my $refkey = 'keycache_hitrate'.($params{lookback} ? '_now' : '');
       $self->add_nagios(
           $self->check_thresholds($self->{$refkey}, "99:", "95:"),
               sprintf "myisam keycache hitrate at %.2f%%", $self->{$refkey});
