@@ -728,6 +728,8 @@ sub selectrow_hashref {
   my $sth = undef;
   my $hashref = undef;
   eval {
+    $self->trace(sprintf "SQL:\n%s\nARGS:\n%s\n",
+        $sql, Data::Dumper::Dumper(\@arguments));
     # helm auf! jetzt wirds dreckig.
     if ($sql =~ /^\s*SHOW/) {
       $hashref = $self->{handle}->selectrow_hashref($sql);
@@ -740,6 +742,8 @@ sub selectrow_hashref {
       }
       $hashref = $sth->selectrow_hashref();
     }
+    $self->trace(sprintf "RESULT:\n%s\n",
+        Data::Dumper::Dumper($hashref));
   };
   if ($@) {
     $self->debug(sprintf "bumm %s", $@);
@@ -759,6 +763,8 @@ sub fetchrow_array {
   my $sth = undef;
   my @row = ();
   eval {
+    $self->trace(sprintf "SQL:\n%s\nARGS:\n%s\n",
+        $sql, Data::Dumper::Dumper(\@arguments));
     $sth = $self->{handle}->prepare($sql);
     if (scalar(@arguments)) {
       $sth->execute(@arguments);
@@ -766,6 +772,8 @@ sub fetchrow_array {
       $sth->execute();
     }
     @row = $sth->fetchrow_array();
+    $self->trace(sprintf "RESULT:\n%s\n",
+        Data::Dumper::Dumper(\@row));
   }; 
   if ($@) {
     $self->debug(sprintf "bumm %s", $@);
@@ -786,6 +794,8 @@ sub fetchall_array {
   my $sth = undef;
   my $rows = undef;
   eval {
+    $self->trace(sprintf "SQL:\n%s\nARGS:\n%s\n",
+        $sql, Data::Dumper::Dumper(\@arguments));
     $sth = $self->{handle}->prepare($sql);
     if (scalar(@arguments)) {
       $sth->execute(@arguments);
@@ -793,6 +803,8 @@ sub fetchall_array {
       $sth->execute();
     }
     $rows = $sth->fetchall_arrayref();
+    $self->trace(sprintf "RESULT:\n%s\n",
+        Data::Dumper::Dumper($rows));
   }; 
   if ($@) {
     printf STDERR "bumm %s\n", $@;
@@ -934,7 +946,8 @@ sub selectrow_hashref {
   if ($sql =~ /^\s*SHOW/) {
     $sql .= '\G'; # http://dev.mysql.com/doc/refman/5.1/de/show-slave-status.html
   }
-  $self->trace($sql);
+  $self->trace(sprintf "SQL (? resolved):\n%s\nARGS:\n%s\n",
+      $sql, Data::Dumper::Dumper(\@arguments));
   $self->create_commandfile($sql);
   my $exit_output = `$self->{sqlplus}`;
   if ($?) {
@@ -955,6 +968,8 @@ sub selectrow_hashref {
     } else {
       # i dont mess around here and you shouldn't either
     }
+    $self->trace(sprintf "RESULT:\n%s\n",
+        Data::Dumper::Dumper($hashref));
   }
   unlink $self->{sql_commandfile};
   unlink $self->{sql_resultfile};
@@ -975,7 +990,8 @@ sub fetchrow_array {
       $sql =~ s/\?/'$_'/;
     }
   }
-  $self->trace($sql);
+  $self->trace(sprintf "SQL (? resolved):\n%s\nARGS:\n%s\n",
+      $sql, Data::Dumper::Dumper(\@arguments));
   $self->create_commandfile($sql);
   my $exit_output = `$self->{sqlplus}`;
   if ($?) {
@@ -991,6 +1007,8 @@ sub fetchrow_array {
         map { s/^\s+([\.\d]+)$/$1/g; $_ }         # strip leading space from numbers
         map { s/\s+$//g; $_ }                     # strip trailing space
         split(/\t/, (split(/\n/, $output))[0]);
+    $self->trace(sprintf "RESULT:\n%s\n",
+        Data::Dumper::Dumper(\@row));
   }
   if ($@) {
     $self->debug(sprintf "bumm %s", $@);
@@ -1015,7 +1033,8 @@ sub fetchall_array {
       $sql =~ s/\?/'$_'/;
     }
   }
-  $self->trace($sql);
+  $self->trace(sprintf "SQL (? resolved):\n%s\nARGS:\n%s\n",
+      $sql, Data::Dumper::Dumper(\@arguments));
   $self->create_commandfile($sql);
   my $exit_output = `$self->{sqlplus}`;
   if ($?) {
@@ -1036,6 +1055,8 @@ sub fetchall_array {
         grep { ! /^Elapsed: / }
         grep { ! /^\s*$/ } split(/\n/, $output);
     $rows = \@rows;
+    $self->trace(sprintf "RESULT:\n%s\n",
+        Data::Dumper::Dumper($rows));
   }
   if ($@) {
     $self->debug(sprintf "bumm %s", $@);
