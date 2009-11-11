@@ -835,6 +835,11 @@ sub execute {
   }
 }
 
+sub errstr {
+  my $self = shift;
+  return $self->{errstr};
+}
+
 sub DESTROY {
   my $self = shift;
   $self->trace(sprintf "disconnecting DBD %s",
@@ -1106,6 +1111,11 @@ sub execute {
   if ($@) {
     printf STDERR "bumm %s\n", $@;
   }
+}
+
+sub errstr {
+  my $self = shift;
+  return $self->{errstr};
 }
 
 sub DESTROY {
