@@ -83,7 +83,7 @@ sub init {
           "unable to get slave lag, because io thead is not running");
     } elsif (! defined $slavehash->{Seconds_Behind_Master}) {
       $self->add_nagios_critical(sprintf "unable to get replication info%s",
-          $self->{handle}->errstr() ? $self->{handle}->errstr() : "");
+          $self->{handle}->{errstr} ? $self->{handle}->{errstr} : "");
     } else {
       $self->{seconds_behind_master} = $slavehash->{Seconds_Behind_Master};
     }
@@ -94,7 +94,7 @@ sub init {
         });
     if (! defined $slavehash->{Slave_IO_Running}) {
       $self->add_nagios_critical(sprintf "unable to get replication info%s",
-          $self->{handle}->errstr() ? $self->{handle}->errstr() : "");
+          $self->{handle}->{errstr} ? $self->{handle}->{errstr} : "");
     } else {
       $self->{slave_io_running} = $slavehash->{Slave_IO_Running};
     }
@@ -105,7 +105,7 @@ sub init {
         });
     if (! defined $slavehash->{Slave_SQL_Running}) {
       $self->add_nagios_critical(sprintf "unable to get replication info%s",
-          $self->{handle}->errstr() ? $self->{handle}->errstr() : "");
+          $self->{handle}->{errstr} ? $self->{handle}->{errstr} : "");
     } else {
       $self->{slave_sql_running} = $slavehash->{Slave_SQL_Running};
     }

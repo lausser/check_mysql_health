@@ -4,6 +4,7 @@
 
 2.1.1
 - added more tracing (touch /tmp/check_mysql_health.trace to watch)
+- fixed a bug in master-slave modes, so it outputs a more meaningful error message (Thanks Will Oberman)
 
 2.1 
 - parameter --lookback uses custom intervals for _now-values
