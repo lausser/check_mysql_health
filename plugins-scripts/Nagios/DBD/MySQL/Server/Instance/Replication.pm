@@ -80,7 +80,7 @@ sub init {
     if ((! defined $slavehash->{Seconds_Behind_Master}) && 
         (lc $slavehash->{Slave_IO_Running} eq 'no')) {
       $self->add_nagios_critical(
-          "unable to get slave lag, because io thead is not running");
+          "unable to get slave lag, because io thread is not running");
     } elsif (! defined $slavehash->{Seconds_Behind_Master}) {
       $self->add_nagios_critical(sprintf "unable to get replication info%s",
           $self->{handle}->{errstr} ? $self->{handle}->{errstr} : "");
