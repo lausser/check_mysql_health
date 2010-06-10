@@ -54,7 +54,8 @@ sub new {
   $self->init_nagios();
   if ($self->dbconnect(%params)) {
     ($self->{dummy}, $self->{version}) = $self->{handle}->fetchrow_array(
-        q{ SHOW VARIABLES WHERE Variable_name = 'version' }
+        #q{ SHOW VARIABLES WHERE Variable_name = 'version' }
+        q{ SHOW VARIABLES LIKE 'version' }
     );
     $self->{version} = (split "-", $self->{version})[0];
     ($self->{dummy}, $self->{uptime}) = $self->{handle}->fetchrow_array(

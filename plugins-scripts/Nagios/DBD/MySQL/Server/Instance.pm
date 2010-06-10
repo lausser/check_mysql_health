@@ -69,11 +69,13 @@ sub init {
     ($dummy, $self->{qcache_hits}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Qcache_hits'
     });
+    #    SHOW VARIABLES WHERE Variable_name = 'have_query_cache' for 5.x, but LIKE is compatible
     ($dummy, $self->{have_query_cache}) = $self->{handle}->fetchrow_array(q{
-        SHOW VARIABLES WHERE Variable_name = 'have_query_cache'
+        SHOW VARIABLES LIKE 'have_query_cache'
     });
+    #    SHOW VARIABLES WHERE Variable_name = 'query_cache_size'
     ($dummy, $self->{query_cache_size}) = $self->{handle}->fetchrow_array(q{
-        SHOW VARIABLES WHERE Variable_name = 'query_cache_size'
+        SHOW VARIABLES LIKE 'query_cache_size'
     });
     $self->valdiff(\%params, qw(com_select qcache_hits));
     $self->{querycache_hitrate_now} = 
@@ -132,12 +134,14 @@ sub init {
         SHOW /*!50000 global */ STATUS LIKE 'Opened_tables'
     });
     if (DBD::MySQL::Server::return_first_server()->version_is_minimum("5.1.3")) {
+      #      SHOW VARIABLES WHERE Variable_name = 'table_open_cache'
       ($dummy, $self->{table_cache}) = $self->{handle}->fetchrow_array(q{
-          SHOW VARIABLES WHERE Variable_name = 'table_open_cache'
+          SHOW VARIABLES LIKE 'table_open_cache'
       });
     } else {
+      #    SHOW VARIABLES WHERE Variable_name = 'table_cache'
       ($dummy, $self->{table_cache}) = $self->{handle}->fetchrow_array(q{
-          SHOW VARIABLES WHERE Variable_name = 'table_cache'
+          SHOW VARIABLES LIKE 'table_cache'
       });
     }
     $self->{table_cache} ||= 0;
