@@ -234,6 +234,14 @@ sub init {
     $self->{pct_tmp_on_disk_now} = $self->{delta_created_tmp_tables} > 0 ?
         100 * $self->{delta_created_tmp_disk_tables} / $self->{delta_created_tmp_tables} :
         100;
+  } elsif ($params{mode} =~ /server::instance::openfiles/) {
+    ($dummy, $self->{open_files_limit}) = $self->{handle}->fetchrow_array(q{
+        SHOW VARIABLES LIKE 'open_files_limit'
+    });
+    ($dummy, $self->{open_files}) = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Open_files'
+    });
+    $self->{pct_open_files} = 100 * $self->{open_files} / $self->{open_files_limit};
   } elsif ($params{mode} =~ /server::instance::myisam/) {
     $self->{engine_myisam} = DBD::MySQL::Server::Instance::MyISAM->new(
         %params
@@ -371,6 +379,20 @@ sub nagios {
           $self->{warningrange}, $self->{criticalrange});
       $self->add_perfdata(sprintf "pct_tmp_table_on_disk_now=%.2f%%",
           $self->{pct_tmp_on_disk_now});
+    } elsif ($params{mode} =~ /server::instance::openfiles/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{pct_open_files}, 80, 95),
+          sprintf "%.2f%% of the open files limit reached (%d of max. %d)",
+              $self->{pct_open_files},
+              $self->{open_files}, $self->{open_files_limit});
+      $self->add_perfdata(sprintf "pct_open_files=%.3f%%;%.3f;%.3f",
+          $self->{pct_open_files},
+          $self->{warningrange},
+          $self->{criticalrange});
+      $self->add_perfdata(sprintf "open_files=%d;%d;%d",
+          $self->{open_files},
+          $self->{open_files_limit} * $self->{warningrange} / 100,
+          $self->{open_files_limit} * $self->{criticalrange} / 100);
     } elsif ($params{mode} =~ /server::instance::myisam/) {
       $self->{engine_myisam}->nagios(%params);
       $self->merge_nagios($self->{engine_myisam});

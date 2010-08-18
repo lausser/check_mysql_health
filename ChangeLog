@@ -2,7 +2,8 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
-2.1.2.1
+2.1.3
+- added mode open-files
 - fix a bug in the pnp template
 
 2.1.2 2010-06-10
