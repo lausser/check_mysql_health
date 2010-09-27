@@ -12,7 +12,8 @@ EXTRA_MODULES=\
   Nagios/DBD/MySQL/Server/Instance/Replication.pm \
   Nagios/DBD/MySQL/Server/Instance.pm \
   Nagios/DBD/MySQL/Server.pm \
-  Nagios/DBD/MySQL/Cluster.pm
+  Nagios/DBD/MySQL/Cluster.pm \
+  Nagios/Extraopts.pm
 EXTRA_DIST=check_mysql_health.pl $(EXTRA_MODULES)
 
 CLEANFILES=$(libexec_SCRIPTS)

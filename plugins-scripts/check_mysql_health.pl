@@ -230,11 +230,25 @@ my @params = (
     "encode",
     "units=s",
     "lookback=i",
-    "3");
+    "3",
+    "with-mymodules-dyn-dir=s",
+    "extra-opts:s");
 
 if (! GetOptions(\%commandline, @params)) {
   print_help();
   exit $ERRORS{UNKNOWN};
+}
+
+if (exists $commandline{'extra-opts'}) {
+  # read the extra file and overwrite other parameters
+  my $extras = Extraopts->new(file => $commandline{'extra-opts'}, commandline =>
+ \%commandline);
+  if (! $extras->is_valid()) {
+    printf "extra-opts are not valid: %s\n", $extras->{errors};
+    exit $ERRORS{UNKNOWN};
+  } else {
+    $extras->overwrite();
+  }
 }
 
 if (exists $commandline{version}) {
@@ -281,7 +295,12 @@ if (exists $commandline{method}) {
   $commandline{method} = "dbi";
 }
 
-$DBD::MySQL::Server::my_modules_dyn_dir = '#MYMODULES_DYN_DIR#';
+if (exists $commandline{'with-mymodules-dyn-dir'}) {
+  $DBD::MYSQL::Server::my_modules_dyn_dir = $commandline{'with-mymodules-dyn-dir
+'};
+} else {
+  $DBD::MYSQL::Server::my_modules_dyn_dir = '#MYMODULES_DYN_DIR#';
+}
 
 if (exists $commandline{environment}) {
   # if the desired environment variable values are different from
