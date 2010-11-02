@@ -43,6 +43,35 @@ sub init {
     ($dummy, $self->{threads_connected}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Threads_connected'
     });
+  } elsif ($params{mode} =~ /server::instance::createdthreads/) {
+    ($dummy, $self->{threads_created}) = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Threads_created'
+    });
+    $self->valdiff(\%params, qw(threads_created));
+    $self->{threads_created_per_sec} = $self->{delta_threads_created} /
+        $self->{delta_timestamp};
+  } elsif ($params{mode} =~ /server::instance::runningthreads/) {
+    ($dummy, $self->{threads_running}) = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Threads_running'
+    });
+  } elsif ($params{mode} =~ /server::instance::cachedthreads/) {
+    ($dummy, $self->{threads_cached}) = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Threads_cached'
+    });
+  } elsif ($params{mode} =~ /server::instance::abortedconnects/) {
+    ($dummy, $self->{connects_aborted}) = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Aborted_connects'
+    });
+    $self->valdiff(\%params, qw(connects_aborted));
+    $self->{connects_aborted_per_sec} = $self->{delta_connects_aborted} /
+        $self->{delta_timestamp};
+  } elsif ($params{mode} =~ /server::instance::abortedclients/) {
+    ($dummy, $self->{clients_aborted}) = $self->{handle}->fetchrow_array(q{
+        SHOW /*!50000 global */ STATUS LIKE 'Aborted_clients'
+    });
+    $self->valdiff(\%params, qw(clients_aborted));
+    $self->{clients_aborted_per_sec} = $self->{delta_clients_aborted} /
+        $self->{delta_timestamp};
   } elsif ($params{mode} =~ /server::instance::threadcachehitrate/) {
     ($dummy, $self->{threads_created}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Threads_created'
@@ -267,6 +296,41 @@ sub nagios {
           sprintf "%d client connection threads", $self->{threads_connected});
       $self->add_perfdata(sprintf "threads_connected=%d;%d;%d",
           $self->{threads_connected},
+          $self->{warningrange}, $self->{criticalrange});
+    } elsif ($params{mode} =~ /server::instance::createdthreads/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{threads_created_per_sec}, 10, 20),
+          sprintf "%.2f threads created/sec", $self->{threads_created_per_sec});
+      $self->add_perfdata(sprintf "threads_created_per_sec=%.2f;%.2f;%.2f",
+          $self->{threads_created_per_sec},
+          $self->{warningrange}, $self->{criticalrange});
+    } elsif ($params{mode} =~ /server::instance::runningthreads/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{threads_running}, 10, 20),
+          sprintf "%d running threads", $self->{threads_running});
+      $self->add_perfdata(sprintf "threads_running=%d;%d;%d",
+          $self->{threads_running},
+          $self->{warningrange}, $self->{criticalrange});
+    } elsif ($params{mode} =~ /server::instance::cachedthreads/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{threads_cached}, 10, 20),
+          sprintf "%d cached threads", $self->{threads_cached});
+      $self->add_perfdata(sprintf "threads_cached=%d;%d;%d",
+          $self->{threads_cached},
+          $self->{warningrange}, $self->{criticalrange});
+    } elsif ($params{mode} =~ /server::instance::abortedconnects/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{connects_aborted_per_sec}, 1, 5),
+          sprintf "%.2f aborted connections/sec", $self->{connects_aborted_per_sec});
+      $self->add_perfdata(sprintf "connects_aborted_per_sec=%.2f;%.2f;%.2f",
+          $self->{connects_aborted_per_sec},
+          $self->{warningrange}, $self->{criticalrange});
+    } elsif ($params{mode} =~ /server::instance::abortedclients/) {
+      $self->add_nagios(
+          $self->check_thresholds($self->{clients_aborted_per_sec}, 1, 5),
+          sprintf "%.2f aborted (client died) connections/sec", $self->{clients_aborted_per_sec});
+      $self->add_perfdata(sprintf "clients_aborted_per_sec=%.2f;%.2f;%.2f",
+          $self->{clients_aborted_per_sec},
           $self->{warningrange}, $self->{criticalrange});
     } elsif ($params{mode} =~ /server::instance::threadcachehitrate/) {
       my $refkey = 'threadcache_hitrate'.($params{lookback} ? '_now' : '');

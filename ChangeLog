@@ -2,6 +2,10 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.4 2010-10-02
+- added modes threads-created, threads-running, threads-cached
+- added connects-aborted, clients-aborted
+
 2.1.3 2010-09-29
 - added mode open-files
 - fix a bug in the pnp template
