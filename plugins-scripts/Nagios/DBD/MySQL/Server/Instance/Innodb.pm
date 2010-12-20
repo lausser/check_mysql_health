@@ -120,6 +120,15 @@ sub init {
       $self->{log_waits_rate} =
           $self->{delta_log_waits} / $self->{delta_timestamp};
     }
+  } elsif ($params{mode} =~ /server::instance::innodb::needoptimize/) {
+#fragmentation=$(($datafree * 100 / $datalength))
+
+#http://www.electrictoolbox.com/optimize-tables-mysql-php/
+    my  @result = $self->{handle}->fetchall_array(q{
+SHOW TABLE STATUS WHERE Data_free / Data_length > 0.1 AND Data_free > 102400
+});
+printf "%s\n", Data::Dumper::Dumper(\@result);
+
   }
 }
 

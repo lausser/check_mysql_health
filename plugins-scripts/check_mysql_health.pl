@@ -88,6 +88,9 @@ my @modes = (
   ['server::instance::tabletmpondisk',
       'tmp-disk-tables', undef,
       'Percent of temp tables created on disk' ],
+  ['server::instance::needoptimize',
+      'table-fragmentation', undef,
+      'Show tables which should be optimized' ],
   ['server::instance::openfiles',
       'open-files', undef,
       'Percent of opened files' ],
@@ -235,6 +238,7 @@ my @params = (
     "perfdata",
     "warning=s",
     "critical=s",
+    "dbthresholds:s",
     "absolute|a",
     "environment|e=s%",
     "method=s",
@@ -247,6 +251,7 @@ my @params = (
     "lookback=i",
     "3",
     "with-mymodules-dyn-dir=s",
+    "report=s",
     "extra-opts:s");
 
 if (! GetOptions(\%commandline, @params)) {
@@ -310,11 +315,16 @@ if (exists $commandline{method}) {
   $commandline{method} = "dbi";
 }
 
-if (exists $commandline{'with-mymodules-dyn-dir'}) {
-  $DBD::MYSQL::Server::my_modules_dyn_dir = $commandline{'with-mymodules-dyn-dir
-'};
+if (exists $commandline{report}) {
+  # short, long, html
 } else {
-  $DBD::MYSQL::Server::my_modules_dyn_dir = '#MYMODULES_DYN_DIR#';
+  $commandline{report} = "long";
+}
+
+if (exists $commandline{'with-mymodules-dyn-dir'}) {
+  $DBD::MySQL::Server::my_modules_dyn_dir = $commandline{'with-mymodules-dyn-dir'};
+} else {
+  $DBD::MySQL::Server::my_modules_dyn_dir = '#MYMODULES_DYN_DIR#';
 }
 
 if (exists $commandline{environment}) {
@@ -426,16 +436,16 @@ if ($commandline{mode} =~ /^my-([^\-.]+)/) {
   exit 3;
 }
 
-$commandline{mode} = (
-    map { $_->[0] }
-    grep {
-       ($commandline{mode} eq $_->[1]) ||
-       ( defined $_->[2] && grep { $commandline{mode} eq $_ } @{$_->[2]})
-    } @modes
-)[0];
 my %params = (
     timeout => $TIMEOUT,
-    mode => $commandline{mode},
+    mode => (
+        map { $_->[0] }
+        grep {
+           ($commandline{mode} eq $_->[1]) ||
+           ( defined $_->[2] && grep { $commandline{mode} eq $_ } @{$_->[2]})
+        } @modes
+    )[0],
+    cmdlinemode => $commandline{mode},
     method => $commandline{method} ||
         $ENV{NAGIOS__SERVICEMYSQL_METH} ||
         $ENV{NAGIOS__HOSTMYSQL_METH} || 'dbi',
@@ -459,6 +469,7 @@ my %params = (
         $ENV{NAGIOS__HOSTMYSQL_PASS},
     warningrange => $commandline{warning},
     criticalrange => $commandline{critical},
+    dbthresholds => $commandline{dbthresholds},
     absolute => $commandline{absolute},
     lookback => $commandline{lookback},
     selectname => $commandline{name} || $commandline{tablespace} || $commandline{datafile},
@@ -469,6 +480,8 @@ my %params = (
     lookback => $commandline{lookback} || 0,
     eyecandy => $commandline{eyecandy},
     statefilesdir => $STATEFILESDIR,
+    verbose => $commandline{verbose},
+    report => $commandline{report},
 );
 
 my $server = undef;

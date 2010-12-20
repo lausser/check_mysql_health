@@ -233,22 +233,26 @@ sub init {
     $self->valdiff(\%params, qw(handler_read_first handler_read_key
         handler_read_next handler_read_prev handler_read_rnd
         handler_read_rnd_next));
-    $self->{index_usage_now} = 100 - (100.0 * ($self->{delta_handler_read_rnd} +
-        $self->{delta_handler_read_rnd_next}) /
-        ($self->{delta_handler_read_first} +
-        $self->{delta_handler_read_key} + 
+    my $delta_reads = $self->{delta_handler_read_first} +
+        $self->{delta_handler_read_key} +
         $self->{delta_handler_read_next} +
-        $self->{delta_handler_read_prev} + 
-        $self->{delta_handler_read_rnd} + 
-        $self->{delta_handler_read_rnd_next}));
-    $self->{index_usage} = 100 - (100.0 * ($self->{handler_read_rnd} +
-        $self->{handler_read_rnd_next}) /
-        ($self->{handler_read_first} +
-        $self->{handler_read_key} + 
+        $self->{delta_handler_read_prev} +
+        $self->{delta_handler_read_rnd} +
+        $self->{delta_handler_read_rnd_next};
+    my $reads = $self->{handler_read_first} +
+        $self->{handler_read_key} +
         $self->{handler_read_next} +
-        $self->{handler_read_prev} + 
-        $self->{handler_read_rnd} + 
-        $self->{handler_read_rnd_next}));
+        $self->{handler_read_prev} +
+        $self->{handler_read_rnd} +
+        $self->{handler_read_rnd_next};
+    $self->{index_usage_now} = ($delta_reads == 0) ? 0 :
+        100 - (100.0 * ($self->{delta_handler_read_rnd} +
+        $self->{delta_handler_read_rnd_next}) /
+        $delta_reads);
+    $self->{index_usage} = ($reads == 0) ? 0 :
+        100 - (100.0 * ($self->{handler_read_rnd} +
+        $self->{handler_read_rnd_next}) /
+        $reads);
   } elsif ($params{mode} =~ /server::instance::tabletmpondisk/) {
     ($dummy, $self->{created_tmp_tables}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Created_tmp_tables'
@@ -271,6 +275,20 @@ sub init {
         SHOW /*!50000 global */ STATUS LIKE 'Open_files'
     });
     $self->{pct_open_files} = 100 * $self->{open_files} / $self->{open_files_limit};
+  } elsif ($params{mode} =~ /server::instance::needoptimize/) {
+    $self->{fragmented} = [];
+    #http://www.electrictoolbox.com/optimize-tables-mysql-php/
+    my  @result = $self->{handle}->fetchall_array(q{
+        SHOW TABLE STATUS
+    });
+    foreach (@result) {
+      my ($name, $engine, $data_length, $data_free) =
+          ($_->[0], $_->[1], $_->[6 ], $_->[9]);
+      next if ($params{name} && $params{name} ne $name);
+      my $fragmentation = $data_length ? $data_free * 100 / $data_length : 0;
+      push(@{$self->{fragmented}},
+          [$name, $fragmentation, $data_length, $data_free]);
+    }
   } elsif ($params{mode} =~ /server::instance::myisam/) {
     $self->{engine_myisam} = DBD::MySQL::Server::Instance::MyISAM->new(
         %params
@@ -415,7 +433,7 @@ sub nagios {
         $self->check_thresholds($self->{$refkey}, "1", "2");
         $self->add_nagios_ok(
             sprintf "table lock contention %.2f%% (uptime < 10800)",
-            $self->{refkey});
+            $self->{$refkey});
       }
       $self->add_perfdata(sprintf "tablelock_contention=%.2f%%;%s;%s",
           $self->{table_lock_contention},
@@ -457,6 +475,16 @@ sub nagios {
           $self->{open_files},
           $self->{open_files_limit} * $self->{warningrange} / 100,
           $self->{open_files_limit} * $self->{criticalrange} / 100);
+    } elsif ($params{mode} =~ /server::instance::needoptimize/) {
+      foreach (@{$self->{fragmented}}) {
+        $self->add_nagios(
+            $self->check_thresholds($_->[1], 10, 25),
+            sprintf "table %s is %.2f%% fragmented", $_->[0], $_->[1]);
+        if ($params{name}) {
+          $self->add_perfdata(sprintf "'%s_frag'=%.2f%%;%d;%d",
+              $_->[0], $_->[1], $self->{warningrange}, $self->{criticalrange});
+        }
+      }
     } elsif ($params{mode} =~ /server::instance::myisam/) {
       $self->{engine_myisam}->nagios(%params);
       $self->merge_nagios($self->{engine_myisam});

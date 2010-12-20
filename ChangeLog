@@ -2,6 +2,15 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.5 2010-12-20
+- fixed a division by zero bug in index-usage (Thanks Wiltmut Gerdes)
+- fixed a severe bug when loading dynamic extensions (Thanks Ralph Schneider)
+- added mode table-fragmentation
+- fixed a bug in table-lock-contention (thanks mayukmok00)
+- mode sql can now have a non-numerical output which is compared to a string/regexp
+- new parameter --dbthresholds
+- new mode report can be used to output only the bad news (short,long,html)
+
 2.1.4 2010-10-02
 - added modes threads-created, threads-running, threads-cached
 - added connects-aborted, clients-aborted

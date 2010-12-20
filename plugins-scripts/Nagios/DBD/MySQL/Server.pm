@@ -46,6 +46,8 @@ sub new {
     timeout => $params{timeout},
     warningrange => $params{warningrange},
     criticalrange => $params{criticalrange},
+    verbose => $params{verbose},
+    report => $params{report},
     version => 'unknown',
     instance => undef,
     handle => undef,
@@ -75,14 +77,26 @@ sub init {
   if ($params{mode} =~ /^server::instance/) {
     $self->{instance} = DBD::MySQL::Server::Instance->new(%params);
   } elsif ($params{mode} =~ /^server::sql/) {
-    $self->{genericsql} = $self->{handle}->fetchrow_array($params{selectname});
-    if ($self->{genericsql} =~ /^\s*\d+\s*$/) {
-      $self->{genericsql} = sprintf "%d", $self->{genericsql};
-    } elsif ($self->{genericsql} =~ /^\s*\d*\.\d+\s*$/) {
-      $self->{genericsql} = sprintf "%.2f", $self->{genericsql};
+    $self->set_local_db_thresholds(%params);
+    if ($params{name2} && $params{name2} ne $params{name}) {
+      $self->{genericsql} =
+          $self->{handle}->fetchrow_array($params{selectname});
+      if (! defined $self->{genericsql}) {
+        $self->add_nagios_unknown(sprintf "got no valid response for %s",
+            $params{selectname});
+      }
     } else {
-      $self->add_nagios_unknown(sprintf "got no valid response for %s",
-          $params{selectname});
+      @{$self->{genericsql}} =
+          $self->{handle}->fetchrow_array($params{selectname});
+      if (! (defined $self->{genericsql} &&
+          (scalar(grep { /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/ } @{$self->{genericsql}})) ==
+          scalar(@{$self->{genericsql}}))) {
+        $self->add_nagios_unknown(sprintf "got no valid response for %s",
+            $params{selectname});
+      } else {
+        # name2 in array
+        # units in array
+      }
     }
   } elsif ($params{mode} =~ /^server::uptime/) {
     # already set with the connection. but use minutes here
@@ -168,17 +182,52 @@ sub nagios {
           $self->{connection_time},
           $self->{warningrange}, $self->{criticalrange});
     } elsif ($params{mode} =~ /^server::sql/) {
-      $self->add_nagios(
-          $self->check_thresholds($self->{genericsql}, 1, 5),
-            sprintf "%s: %s%s", 
-            $params{name2} ? lc $params{name2} : lc $params{selectname},
-            $self->{genericsql},
-            $params{units} ? $params{units} : "");
-      $self->add_perfdata(sprintf "\'%s\'=%s%s;%s;%s",
-          $params{name2} ? lc $params{name2} : lc $params{selectname},
-          $self->{genericsql},
-          $params{units} ? $params{units} : "",
-          $self->{warningrange}, $self->{criticalrange});
+      if ($params{name2} && $params{name2} ne $params{name}) {
+        if ($params{regexp}) {
+          if ($self->{genericsql} =~ /$params{name2}/) {
+            $self->add_nagios_ok(
+                sprintf "output %s matches pattern %s",
+                    $self->{genericsql}, $params{name2});
+          } else {
+            $self->add_nagios_critical(
+                sprintf "output %s does not match pattern %s",
+                    $self->{genericsql}, $params{name2});
+          }
+        } else {
+          if ($self->{genericsql} eq $params{name2}) {
+            $self->add_nagios_ok(
+                sprintf "output %s found", $self->{genericsql});
+          } else {
+            $self->add_nagios_critical(
+                sprintf "output %s not found", $self->{genericsql});
+          }
+        }
+      } else {
+        $self->add_nagios(
+            # the first item in the list will trigger the threshold values
+            $self->check_thresholds($self->{genericsql}[0], 1, 5),
+                sprintf "%s: %s%s",
+                $params{name2} ? lc $params{name2} : lc $params{selectname},
+                # float as float, integers as integers
+                join(" ", map {
+                    (sprintf("%d", $_) eq $_) ? $_ : sprintf("%f", $_)
+                } @{$self->{genericsql}}),
+                $params{units} ? $params{units} : "");
+        my $i = 0;
+        # workaround... getting the column names from the database would be nicer
+        my @names2_arr = split(/\s+/, $params{name2});
+        foreach my $t (@{$self->{genericsql}}) {
+          $self->add_perfdata(sprintf "\'%s\'=%s%s;%s;%s",
+              $names2_arr[$i] ? lc $names2_arr[$i] : lc $params{selectname},
+              # float as float, integers as integers
+              (sprintf("%d", $t) eq $t) ? $t : sprintf("%f", $t),
+              $params{units} ? $params{units} : "",
+            ($i == 0) ? $self->{warningrange} : "",
+              ($i == 0) ? $self->{criticalrange} : ""
+          );
+          $i++;
+        }
+      }
     } elsif ($params{mode} =~ /^my::([^:.]+)/) {
       $self->{my}->nagios(%params);
       $self->merge_nagios($self->{my});
@@ -301,34 +350,134 @@ sub merge_nagios {
   push(@{$self->{nagios}->{perfdata}}, @{$child->{nagios}->{perfdata}});
 }
 
-
 sub calculate_result {
   my $self = shift;
-  if ($ENV{NRPE_MULTILINESUPPORT} && 
+  my $multiline = 0;
+  map {
+    $self->{nagios_level} = $ERRORS{$_} if
+        (scalar(@{$self->{nagios}->{messages}->{$ERRORS{$_}}}));
+  } ("OK", "UNKNOWN", "WARNING", "CRITICAL");
+  if ($ENV{NRPE_MULTILINESUPPORT} &&
       length join(" ", @{$self->{nagios}->{perfdata}}) > 200) {
-    foreach my $level ("CRITICAL", "WARNING", "UNKNOWN", "OK") {
-      # first the bad news
-      if (scalar(@{$self->{nagios}->{messages}->{$ERRORS{$level}}})) {
-        $self->{nagios_message} .=
-            "\n".join("\n", @{$self->{nagios}->{messages}->{$ERRORS{$level}}});
-      }
-    }
-    $self->{nagios_message} =~ s/^\n//g;
-    $self->{perfdata} = join("\n", @{$self->{nagios}->{perfdata}});
-  } else {
-    foreach my $level ("CRITICAL", "WARNING", "UNKNOWN", "OK") {
-      # first the bad news
-      if (scalar(@{$self->{nagios}->{messages}->{$ERRORS{$level}}})) {
-        $self->{nagios_message} .= 
-            join(", ", @{$self->{nagios}->{messages}->{$ERRORS{$level}}}).", ";
-      }
-    }
-    $self->{nagios_message} =~ s/, $//g;
-    $self->{perfdata} = join(" ", @{$self->{nagios}->{perfdata}});
+    $multiline = 1;
   }
-  foreach my $level ("OK", "UNKNOWN", "WARNING", "CRITICAL") {
-    if (scalar(@{$self->{nagios}->{messages}->{$ERRORS{$level}}})) {
-      $self->{nagios_level} = $ERRORS{$level};
+  my $all_messages = join(($multiline ? "\n" : ", "), map {
+      join(($multiline ? "\n" : ", "), @{$self->{nagios}->{messages}->{$ERRORS{$_}}})
+  } grep {
+      scalar(@{$self->{nagios}->{messages}->{$ERRORS{$_}}})
+  } ("CRITICAL", "WARNING", "UNKNOWN", "OK"));
+  my $bad_messages = join(($multiline ? "\n" : ", "), map {
+      join(($multiline ? "\n" : ", "), @{$self->{nagios}->{messages}->{$ERRORS{$_}}})
+  } grep {
+      scalar(@{$self->{nagios}->{messages}->{$ERRORS{$_}}})
+  } ("CRITICAL", "WARNING", "UNKNOWN"));
+  my $all_messages_short = $bad_messages ? $bad_messages : 'no problems';
+  my $all_messages_html = "<table style=\"border-collapse: collapse;\">".
+      join("", map {
+          my $level = $ERRORS{$_};
+          join("", map {
+              sprintf "<tr valign=\"top\"><td class=\"service%s\">%s</td></tr>",
+              $level, $_;
+          } @{$self->{nagios}->{messages}->{$level}});
+      } grep {
+          scalar(@{$self->{nagios}->{messages}->{$ERRORS{$_}}})
+      } ("CRITICAL", "WARNING", "UNKNOWN", "OK")).
+  "</table>";
+  if (exists $self->{identstring}) {
+    $self->{nagios_message} .= $self->{identstring};
+  }
+  if ($self->{report} eq "long") {
+    $self->{nagios_message} .= $all_messages;
+  } elsif ($self->{report} eq "short") {
+    $self->{nagios_message} .= $all_messages_short;
+  } elsif ($self->{report} eq "html") {
+    $self->{nagios_message} .= $all_messages_short."\n".$all_messages_html;
+  }
+  $self->{perfdata} = join(" ", @{$self->{nagios}->{perfdata}});
+}
+
+sub set_global_db_thresholds {
+  my $self = shift;
+  my $params = shift;
+  my $warning = undef;
+  my $critical = undef;
+  return unless $params->{dbthresholds};
+  $params->{name0} = $params->{dbthresholds};
+  # :pluginmode   :name     :warning    :critical
+  # mode          empty     
+  # 
+  eval {
+    if ($self->{handle}->fetchrow_array(q{
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = ?
+        AND table_name = 'CHECK_MYSQL_HEALTH_THRESHOLDS';
+      }, $self->{database})) { # either --database... or information_schema
+      my @dbthresholds = $self->{handle}->fetchall_array(q{
+          SELECT * FROM check_mysql_health_thresholds
+      });
+      $params->{dbthresholds} = \@dbthresholds;
+      foreach (@dbthresholds) { 
+        if (($_->[0] eq $params->{cmdlinemode}) &&
+            (! defined $_->[1] || ! $_->[1])) {
+          ($warning, $critical) = ($_->[2], $_->[3]);
+        }
+      }
+    }
+  };
+  if (! $@) {
+    if ($warning) {
+      $params->{warningrange} = $warning;
+      $self->trace("read warningthreshold %s from database", $warning);
+    }
+    if ($critical) {
+      $params->{criticalrange} = $critical;
+      $self->trace("read criticalthreshold %s from database", $critical);
+    }
+  }
+}
+
+sub set_local_db_thresholds {
+  my $self = shift;
+  my %params = @_;
+  my $warning = undef;
+  my $critical = undef;
+  # :pluginmode   :name     :warning    :critical
+  # mode          name0
+  # mode          name2
+  # mode          name
+  #
+  # first: argument of --dbthresholds, it it exists
+  # second: --name2
+  # third: --name
+  if (ref($params{dbthresholds}) eq 'ARRAY') {
+    my $marker;
+    foreach (@{$params{dbthresholds}}) {
+      if ($_->[0] eq $params{cmdlinemode}) {
+        if (defined $_->[1] && $params{name0} && $_->[1] eq $params{name0}) {
+          ($warning, $critical) = ($_->[2], $_->[3]);
+          $marker = $params{name0};
+          last;
+        } elsif (defined $_->[1] && $params{name2} && $_->[1] eq $params{name2}) {
+          ($warning, $critical) = ($_->[2], $_->[3]);
+          $marker = $params{name2};
+          last;
+        } elsif (defined $_->[1] && $params{name} && $_->[1] eq $params{name}) {
+          ($warning, $critical) = ($_->[2], $_->[3]);
+          $marker = $params{name};
+          last;
+        }
+      }
+    }
+    if ($warning) {
+      $self->{warningrange} = $warning;
+      $self->trace("read warningthreshold %s for %s from database",
+         $marker, $warning);
+    }
+    if ($critical) {
+      $self->{criticalrange} = $critical;
+      $self->trace("read criticalthreshold %s for %s from database",
+          $marker, $critical);
     }
   }
 }
