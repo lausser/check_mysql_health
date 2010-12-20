@@ -74,6 +74,7 @@ sub init {
   my %params = @_;
   $params{handle} = $self->{handle};
   $params{uptime} = $self->{uptime};
+  $self->set_global_db_thresholds(\%params);
   if ($params{mode} =~ /^server::instance/) {
     $self->{instance} = DBD::MySQL::Server::Instance->new(%params);
   } elsif ($params{mode} =~ /^server::sql/) {
