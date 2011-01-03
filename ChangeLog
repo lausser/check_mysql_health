@@ -2,6 +2,9 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.5.1 2011-01-03
+- bugfix in --mode sql (numeric vs. regexp result)
+
 2.1.5 2010-12-20
 - fixed a division by zero bug in index-usage (Thanks Wiltmut Gerdes)
 - fixed a severe bug when loading dynamic extensions (Thanks Ralph Schneider)
