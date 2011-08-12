@@ -108,6 +108,67 @@ my @modes = (
       'any sql command returning a single number' ],
 );
 
+# rrd data store names are limited to 19 characters
+my %labels = {
+  bufferpool_hitrate => {
+    groundwork => 'bp_hitrate',
+  },
+  bufferpool_hitrate_now => {
+    groundwork => 'bp_hitrate_now',
+  },
+  bufferpool_free_waits_rate => {
+    groundwork => 'bp_freewaits',
+  },
+  innodb_log_waits_rate => {
+    groundwork => 'inno_log_waits',
+  },
+  keycache_hitrate => {
+    groundwork => 'kc_hitrate',
+  },
+  keycache_hitrate_now => {
+    groundwork => 'kc_hitrate_now',
+  },
+  threads_created_per_sec => {
+    groundwork => 'thrds_creat_per_s',
+  },
+  connects_aborted_per_sec => {
+    groundwork => 'conn_abrt_per_s',
+  },
+  clients_aborted_per_sec => {
+    groundwork => 'clnt_abrt_per_s',
+  },
+  thread_cache_hitrate => {
+    groundwork => 'tc_hitrate',
+  },
+  thread_cache_hitrate_now => {
+    groundwork => 'tc_hitrate_now',
+  },
+  qcache_lowmem_prunes_rate => {
+    groundwork => 'qc_lowm_prnsrate',
+  },
+  slow_queries_rate => {
+    groundwork => 'slow_q_rate',
+  },
+  tablecache_hitrate => {
+    groundwork => 'tac_hitrate',
+  },
+  tablecache_fillrate => {
+    groundwork => 'tac_fillrate',
+  },
+  tablelock_contention => {
+    groundwork => 'tl_contention',
+  },
+  tablelock_contention_now => {
+    groundwork => 'tl_contention_now',
+  },
+  pct_tmp_table_on_disk => {
+    groundwork => 'tmptab_on_disk',
+  },
+  pct_tmp_table_on_disk_now => {
+    groundwork => 'tmptab_on_disk_now',
+  },
+};
+
 sub print_usage () {
   print <<EOUS;
   Usage:
@@ -250,8 +311,10 @@ my @params = (
     "units=s",
     "lookback=i",
     "3",
+    "statefilesdir=s",
     "with-mymodules-dyn-dir=s",
     "report=s",
+    "labelformat=s",
     "extra-opts:s");
 
 if (! GetOptions(\%commandline, @params)) {
@@ -319,6 +382,12 @@ if (exists $commandline{report}) {
   # short, long, html
 } else {
   $commandline{report} = "long";
+}
+
+if (exists $commandline{labelformat}) {
+  # groundwork
+} else {
+  $commandline{labelformat} = "pnp4nagios";
 }
 
 if (exists $commandline{'with-mymodules-dyn-dir'}) {
@@ -402,6 +471,14 @@ if (exists $commandline{shell}) {
   system("/bin/sh");
 }
 
+if (! exists $commandline{statefilesdir}) {
+  if (exists $ENV{OMD_ROOT}) {
+    $commandline{statefilesdir} = $ENV{OMD_ROOT}."/var/tmp/check_mysql_health";
+  } else {
+    $commandline{statefilesdir} = $STATEFILESDIR;
+  }
+}
+
 if (exists $commandline{name}) {
   # objects can be encoded like an url
   # with s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
@@ -479,9 +556,10 @@ my %params = (
     units => $commandline{units},
     lookback => $commandline{lookback} || 0,
     eyecandy => $commandline{eyecandy},
-    statefilesdir => $STATEFILESDIR,
+    statefilesdir => $commandline{statefilesdir},
     verbose => $commandline{verbose},
     report => $commandline{report},
+    labelformat => $commandline{labelformat},
 );
 
 my $server = undef;
@@ -490,14 +568,14 @@ my $cluster = undef;
 if ($params{mode} =~ /^(server|my)/) {
   $server = DBD::MySQL::Server->new(%params);
   $server->nagios(%params);
-  $server->calculate_result();
+  $server->calculate_result(\%labels);
   $nagios_message = $server->{nagios_message};
   $nagios_level = $server->{nagios_level};
   $perfdata = $server->{perfdata};
 } elsif ($params{mode} =~ /^cluster/) {
   $cluster = DBD::MySQL::Cluster->new(%params);
   $cluster->nagios(%params);
-  $cluster->calculate_result();
+  $cluster->calculate_result(\%labels);
   $nagios_message = $cluster->{nagios_message};
   $nagios_level = $cluster->{nagios_level};
   $perfdata = $cluster->{perfdata};

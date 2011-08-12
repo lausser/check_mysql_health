@@ -48,6 +48,7 @@ sub new {
     criticalrange => $params{criticalrange},
     verbose => $params{verbose},
     report => $params{report},
+    labelformat => $params{labelformat},
     version => 'unknown',
     instance => undef,
     handle => undef,
@@ -362,6 +363,7 @@ sub merge_nagios {
 
 sub calculate_result {
   my $self = shift;
+  my $labels = shift || {};
   my $multiline = 0;
   map {
     $self->{nagios_level} = $ERRORS{$_} if
@@ -403,7 +405,25 @@ sub calculate_result {
   } elsif ($self->{report} eq "html") {
     $self->{nagios_message} .= $all_messages_short."\n".$all_messages_html;
   }
-  $self->{perfdata} = join(" ", @{$self->{nagios}->{perfdata}});
+  if ($self->{labelformat} eq "pnp4nagios") {
+    $self->{perfdata} = join(" ", @{$self->{nagios}->{perfdata}});
+  } else {
+    $self->{perfdata} = join(" ", map {
+        my $perfdata = $_;
+        if ($perfdata =~ /^(.*?)=(.*)/) {
+          my $label = $1;
+          my $data = $2;
+          if (exists $labels->{$label} &&
+              exists $labels->{$label}->{$self->{labelformat}}) {
+            $labels->{$label}->{$self->{labelformat}}."=".$data;
+          } else {
+            $perfdata;
+          }
+        } else {
+          $perfdata;
+        }
+    } @{$self->{nagios}->{perfdata}});
+  }
 }
 
 sub set_global_db_thresholds {
@@ -572,7 +592,22 @@ sub save_state {
   my $self = shift;
   my %params = @_;
   my $extension = "";
-  mkdir $params{statefilesdir} unless -d $params{statefilesdir};
+  if ($^O =~ /MSWin/) {
+    $mode =~ s/::/_/g;
+    $params{statefilesdir} = $self->system_vartmpdir();
+  }
+  if (! -d $params{statefilesdir}) {
+    eval {
+      use File::Path;
+      mkpath $params{statefilesdir};
+    };
+  }
+  if ($@ || ! -w $params{statefilesdir}) {
+    $self->add_nagios($ERRORS{CRITICAL},
+        sprintf "statefilesdir %s does not exist or is not writable\n",
+        $params{statefilesdir});
+    return;
+  }
   my $statefile = sprintf "%s/%s_%s", 
       $params{statefilesdir}, $params{hostname}, $params{mode};
   $extension .= $params{differenciator} ? "_".$params{differenciator} : "";
