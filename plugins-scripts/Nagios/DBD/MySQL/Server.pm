@@ -592,6 +592,12 @@ sub save_state {
   my $self = shift;
   my %params = @_;
   my $extension = "";
+  if ($params{connect} =~ /(\w+)\/(\w+)@(\w+)/) {
+    $params{connect} = $3;
+  } else {
+    # just to be sure
+    $params{connect} =~ s/\//_/g;
+  }
   my $mode = $params{mode};
   if ($^O =~ /MSWin/) {
     $mode =~ s/::/_/g;
@@ -609,7 +615,7 @@ sub save_state {
         $params{statefilesdir});
     return;
   }
-  my $statefile = sprintf "%s_%s", $params{hostname}, $params{mode};
+  my $statefile = sprintf "%s_%s", $params{hostname}, $mode;
   $extension .= $params{differenciator} ? "_".$params{differenciator} : "";
   $extension .= $params{socket} ? "_".$params{socket} : "";
   $extension .= $params{port} ? "_".$params{port} : "";
@@ -643,12 +649,17 @@ sub load_state {
   my $self = shift;
   my %params = @_;
   my $extension = "";
+  if ($params{connect} =~ /(\w+)\/(\w+)@(\w+)/) {
+    $params{connect} = $3;
+  } else {
+    $params{connect} =~ s/\//_/g;
+  }
   my $mode = $params{mode};
   if ($^O =~ /MSWin/) {
     $mode =~ s/::/_/g;
     $params{statefilesdir} = $self->system_vartmpdir();
   }
-  my $statefile = sprintf "%s_%s", $params{hostname}, $params{mode};
+  my $statefile = sprintf "%s_%s", $params{hostname}, $mode;
   $extension .= $params{differenciator} ? "_".$params{differenciator} : "";
   $extension .= $params{socket} ? "_".$params{socket} : "";
   $extension .= $params{port} ? "_".$params{port} : "";
@@ -663,6 +674,7 @@ sub load_state {
   $extension =~ s/\s/_/g;
   $statefile .= $extension;
   $statefile = lc $statefile;
+  $statefile = sprintf "%s/%s", $params{statefilesdir}, $statefile;
   if ( -f $statefile) {
     our $VAR1;
     eval {
