@@ -592,6 +592,7 @@ sub save_state {
   my $self = shift;
   my %params = @_;
   my $extension = "";
+  my $mode = $params{mode};
   if ($^O =~ /MSWin/) {
     $mode =~ s/::/_/g;
     $params{statefilesdir} = $self->system_vartmpdir();
@@ -608,8 +609,7 @@ sub save_state {
         $params{statefilesdir});
     return;
   }
-  my $statefile = sprintf "%s/%s_%s", 
-      $params{statefilesdir}, $params{hostname}, $params{mode};
+  my $statefile = sprintf "%s_%s", $params{hostname}, $params{mode};
   $extension .= $params{differenciator} ? "_".$params{differenciator} : "";
   $extension .= $params{socket} ? "_".$params{socket} : "";
   $extension .= $params{port} ? "_".$params{port} : "";
@@ -624,12 +624,17 @@ sub save_state {
   $extension =~ s/\s/_/g;
   $statefile .= $extension;
   $statefile = lc $statefile;
-  open(STATE, ">$statefile");
-  if ((ref($params{save}) eq "HASH") && exists $params{save}->{timestamp}) {
-    $params{save}->{localtime} = scalar localtime $params{save}->{timestamp};
+  $statefile = sprintf "%s/%s", $params{statefilesdir}, $statefile;
+  if (open(STATE, ">$statefile")) {
+    if ((ref($params{save}) eq "HASH") && exists $params{save}->{timestamp}) {
+      $params{save}->{localtime} = scalar localtime $params{save}->{timestamp};
+    }
+    printf STATE Data::Dumper::Dumper($params{save});
+    close STATE;
+  } else { 
+    $self->add_nagios($ERRORS{CRITICAL},
+        sprintf "statefile %s is not writable", $statefile);
   }
-  printf STATE Data::Dumper::Dumper($params{save});
-  close STATE;
   $self->debug(sprintf "saved %s to %s",
       Data::Dumper::Dumper($params{save}), $statefile);
 }
@@ -638,8 +643,12 @@ sub load_state {
   my $self = shift;
   my %params = @_;
   my $extension = "";
-  my $statefile = sprintf "%s/%s_%s", 
-      $params{statefilesdir}, $params{hostname}, $params{mode};
+  my $mode = $params{mode};
+  if ($^O =~ /MSWin/) {
+    $mode =~ s/::/_/g;
+    $params{statefilesdir} = $self->system_vartmpdir();
+  }
+  my $statefile = sprintf "%s_%s", $params{hostname}, $params{mode};
   $extension .= $params{differenciator} ? "_".$params{differenciator} : "";
   $extension .= $params{socket} ? "_".$params{socket} : "";
   $extension .= $params{port} ? "_".$params{port} : "";
@@ -660,7 +669,8 @@ sub load_state {
       require $statefile;
     };
     if($@) {
-printf "rumms\n";
+      $self->add_nagios($ERRORS{CRITICAL},
+          sprintf "statefile %s is corrupt", $statefile);
     }
     $self->debug(sprintf "load %s", Data::Dumper::Dumper($VAR1));
     return $VAR1;

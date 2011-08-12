@@ -109,7 +109,7 @@ my @modes = (
 );
 
 # rrd data store names are limited to 19 characters
-my %labels = {
+my %labels = (
   bufferpool_hitrate => {
     groundwork => 'bp_hitrate',
   },
@@ -167,7 +167,7 @@ my %labels = {
   pct_tmp_table_on_disk_now => {
     groundwork => 'tmptab_on_disk_now',
   },
-};
+);
 
 sub print_usage () {
   print <<EOUS;
@@ -221,6 +221,9 @@ EOUS
     --units
        one of %, KB, MB, GB. This is used for a better output of mode=sql
        and for specifying thresholds for mode=tablespace-free
+    --labelformat
+       one of pnp4nagios (which is the default) or groundwork.
+       It is used to shorten performance data labels to 19 characters.
 
   In mode sql you can url-encode the statement so you will not have to mess
   around with special characters in your Nagios service definitions.
