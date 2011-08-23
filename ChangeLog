@@ -2,6 +2,9 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.7 2011-08-23
+- innodb modes now detect problems with the innodb engine
+
 2.1.6 2011-08-12
 - fix a bug with statefilesdir and capital letters
 - add --labelformat so that groundwork no longer complains (max label length is 19 characters)

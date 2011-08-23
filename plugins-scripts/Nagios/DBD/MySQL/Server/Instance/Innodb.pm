@@ -58,6 +58,7 @@ sub new {
       bufferpool_hitrate => undef,
       wait_free => undef,
       log_waits => undef,
+      have_innodb => undef,
       warningrange => $params{warningrange},
       criticalrange => $params{criticalrange},
     };
@@ -73,7 +74,15 @@ sub init {
   my $dummy;
   $self->debug("enter init");
   $self->init_nagios();
-  if ($params{mode} =~ /server::instance::innodb::bufferpool::hitrate/) {
+  ($dummy, $self->{have_innodb}) 
+      = $self->{handle}->fetchrow_array(q{
+      SHOW VARIABLES LIKE 'have_innodb'
+  });
+  if ($self->{have_innodb} eq "NO") {
+    $self->add_nagios_critical("the innodb engine has a problem (have_innodb=no)");
+  } elsif ($self->{have_innodb} eq "DISABLED") {
+    # add_nagios_ok later
+  } elsif ($params{mode} =~ /server::instance::innodb::bufferpool::hitrate/) {
     ($dummy, $self->{bufferpool_reads}) 
         = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Innodb_buffer_pool_reads'
@@ -136,7 +145,9 @@ sub nagios {
   my $self = shift;
   my %params = @_;
   my $now = $params{lookback} ? '_now' : '';
-  if (! $self->{nagios_level}) {
+  if ($self->{have_innodb} eq "DISABLED") {
+    $self->add_nagios_ok("the innodb engine has been disabled");
+  } elsif (! $self->{nagios_level}) {
     if ($params{mode} =~ /server::instance::innodb::bufferpool::hitrate/) {
       my $refkey = 'bufferpool_hitrate'.($params{lookback} ? '_now' : '');
       $self->add_nagios(
