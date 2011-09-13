@@ -43,6 +43,8 @@ sub new {
     socket => $params{socket},
     username => $params{username},
     password => $params{password},
+    mycnf => $params{mycnf},
+    mycnfgroup => $params{mycnfgroup},
     timeout => $params{timeout},
     warningrange => $params{warningrange},
     criticalrange => $params{criticalrange},
@@ -855,6 +857,8 @@ sub new {
     socket => $params{socket},
     username => $params{username},
     password => $params{password},
+    mycnf => $params{mycnf},
+    mycnfgroup => $params{mycnfgroup},
     handle => undef,
   };
   bless $self, $class;
@@ -893,17 +897,26 @@ sub init {
       $self->{password} = time;
     }
   } else {
-    if (($self->{hostname} ne 'localhost') && (! $self->{username} || ! $self->{password})) {
-      $self->{errstr} = "Please specify hostname, username and password";
+    if (
+        ($self->{hostname} ne 'localhost' && (! $self->{username} || ! $self->{password})) && 
+        (! $self->{mycnf}) ) {
+      $self->{errstr} = "Please specify hostname, username and password or a .cnf file";
       return undef;
     }
     $self->{dsn} = "DBI:mysql:";
     $self->{dsn} .= sprintf "database=%s", $self->{database};
-    $self->{dsn} .= sprintf ";host=%s", $self->{hostname};
-    $self->{dsn} .= sprintf ";port=%s", $self->{port}
-        unless $self->{socket} || $self->{hostname} eq 'localhost';
-    $self->{dsn} .= sprintf ";mysql_socket=%s", $self->{socket} 
-        if $self->{socket};
+    if ($self->{mycnf}) {
+      $self->{dsn} .= sprintf ";mysql_read_default_file=%s", $self->{mycnf};
+      if ($self->{mycnfgroup}) {
+        $self->{dsn} .= sprintf ";mysql_read_default_group=%s", $self->{mycnfgroup};
+      }
+    } else {
+      $self->{dsn} .= sprintf ";host=%s", $self->{hostname};
+      $self->{dsn} .= sprintf ";port=%s", $self->{port}
+          unless $self->{socket} || $self->{hostname} eq 'localhost';
+      $self->{dsn} .= sprintf ";mysql_socket=%s", $self->{socket} 
+          if $self->{socket};
+    }
   }
   if (! exists $self->{errstr}) {
     eval {

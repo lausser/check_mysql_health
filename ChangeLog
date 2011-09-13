@@ -2,6 +2,9 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.8 2011-09-13
+- new parameters --mycnf and --mycnfgroup 
+
 2.1.7 2011-08-23
 - innodb modes now detect problems with the innodb engine
 

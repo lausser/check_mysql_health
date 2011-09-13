@@ -295,6 +295,8 @@ my @params = (
     "socket|S=s",
     "username|u=s",
     "password|p=s",
+    "mycnf=s",
+    "mycnfgroup=s",
     "mode|m=s",
     "name=s",
     "name2=s",
@@ -515,7 +517,6 @@ if ($commandline{mode} =~ /^my-([^\-.]+)/) {
   print_usage();
   exit 3;
 }
-
 my %params = (
     timeout => $TIMEOUT,
     mode => (
@@ -547,6 +548,12 @@ my %params = (
     password => $commandline{password} || 
         $ENV{NAGIOS__SERVICEMYSQL_PASS} ||
         $ENV{NAGIOS__HOSTMYSQL_PASS},
+    mycnf => $commandline{mycnf} || 
+        $ENV{NAGIOS__SERVICEMYSQL_MYCNF} ||
+        $ENV{NAGIOS__HOSTMYSQL_MYCNF},
+    mycnfgroup => $commandline{mycnfgroup} || 
+        $ENV{NAGIOS__SERVICEMYSQL_MYCNFGROUP} ||
+        $ENV{NAGIOS__HOSTMYSQL_MYCNFGROUP},
     warningrange => $commandline{warning},
     criticalrange => $commandline{critical},
     dbthresholds => $commandline{dbthresholds},
