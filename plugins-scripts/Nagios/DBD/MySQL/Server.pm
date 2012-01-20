@@ -313,7 +313,7 @@ sub add_nagios {
   my $message = shift;
   push(@{$self->{nagios}->{messages}->{$level}}, $message);
   # recalc current level
-  foreach my $llevel qw(CRITICAL WARNING UNKNOWN OK) {
+  foreach my $llevel (qw(CRITICAL WARNING UNKNOWN OK)) {
     if (scalar(@{$self->{nagios}->{messages}->{$ERRORS{$llevel}}})) {
       $self->{nagios_level} = $ERRORS{$llevel};
     }
@@ -922,14 +922,17 @@ sub init {
     eval {
       require DBI;
       use POSIX ':signal_h';
-      local $SIG{'ALRM'} = sub {
-        die "alarm\n";
-      };
-      my $mask = POSIX::SigSet->new( SIGALRM );
-      my $action = POSIX::SigAction->new(
-          sub { die "alarm\n" ; }, $mask);
-      my $oldaction = POSIX::SigAction->new();
-      sigaction(SIGALRM ,$action ,$oldaction );
+      if ($^O =~ /MSWin/) {
+        local $SIG{'ALRM'} = sub {
+          die "alarm\n";
+        };
+      } else {
+        my $mask = POSIX::SigSet->new( SIGALRM );
+        my $action = POSIX::SigAction->new(
+            sub { die "alarm\n" ; }, $mask);
+        my $oldaction = POSIX::SigAction->new();
+        sigaction(SIGALRM ,$action ,$oldaction );
+      }
       alarm($self->{timeout} - 1); # 1 second before the global unknown timeout
       if ($self->{handle} = DBI->connect(
           $self->{dsn},
@@ -1139,14 +1142,17 @@ sub init {
       }
   
       use POSIX ':signal_h';
-      local $SIG{'ALRM'} = sub {
-        die "alarm\n";
-      };
-      my $mask = POSIX::SigSet->new( SIGALRM );
-      my $action = POSIX::SigAction->new(
-          sub { die "alarm\n" ; }, $mask);
-      my $oldaction = POSIX::SigAction->new();
-      sigaction(SIGALRM ,$action ,$oldaction );
+      if ($^O =~ /MSWin/) {
+        local $SIG{'ALRM'} = sub {
+          die "alarm\n";
+        };
+      } else {
+        my $mask = POSIX::SigSet->new( SIGALRM );
+        my $action = POSIX::SigAction->new(
+            sub { die "alarm\n" ; }, $mask);
+        my $oldaction = POSIX::SigAction->new();
+        sigaction(SIGALRM ,$action ,$oldaction );
+      }
       alarm($self->{timeout} - 1); # 1 second before the global unknown timeout
   
       my $answer = $self->fetchrow_array(
@@ -1428,14 +1434,17 @@ sub init {
     eval {
       require DBI;
       use POSIX ':signal_h';
-      local $SIG{'ALRM'} = sub {
-        die "alarm\n";
-      };
-      my $mask = POSIX::SigSet->new( SIGALRM );
-      my $action = POSIX::SigAction->new(
-      sub { die "alarm\n" ; }, $mask);
-      my $oldaction = POSIX::SigAction->new();
-      sigaction(SIGALRM ,$action ,$oldaction );
+      if ($^O =~ /MSWin/) {
+        local $SIG{'ALRM'} = sub {
+          die "alarm\n";
+        };
+      } else {
+        my $mask = POSIX::SigSet->new( SIGALRM );
+        my $action = POSIX::SigAction->new(
+            sub { die "alarm\n" ; }, $mask);
+        my $oldaction = POSIX::SigAction->new();
+        sigaction(SIGALRM ,$action ,$oldaction );
+      }
       alarm($self->{timeout} - 1); # 1 second before the global unknown timeout
       if ($self->{handle} = DBI->connect(
           sprintf("DBI:SQLRelay:host=%s;port=%d;socket=%s", 
