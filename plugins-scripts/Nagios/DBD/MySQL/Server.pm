@@ -36,6 +36,7 @@ sub new {
   my $class = shift;
   my %params = @_;
   my $self = {
+    mode => $params{mode},
     access => $params{method} || 'dbi',
     hostname => $params{hostname},
     database => $params{database} || 'information_schema',
@@ -385,7 +386,18 @@ sub calculate_result {
   } grep {
       scalar(@{$self->{nagios}->{messages}->{$ERRORS{$_}}})
   } ("CRITICAL", "WARNING", "UNKNOWN"));
+  my $good_messages = join(($multiline ? "\n" : ", "), map {
+      join(($multiline ? "\n" : ", "), @{$self->{nagios}->{messages}->{$ERRORS{$_}}})
+  } grep {
+      scalar(@{$self->{nagios}->{messages}->{$ERRORS{$_}}})
+  } ("OK"));
   my $all_messages_short = $bad_messages ? $bad_messages : 'no problems';
+  # if mode = my-....
+  # and there are some ok-messages
+  # output them instead of "no problems"
+  if ($self->{mode} =~ /^my\-/ && $good_messages) {
+    $all_messages_short = $bad_messages ? $bad_messages : $good_messages;
+  }
   my $all_messages_html = "<table style=\"border-collapse: collapse;\">".
       join("", map {
           my $level = $_;

@@ -2,6 +2,9 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.8.3 2012-10-15
+- output also ok-messages for my-modes
+
 2.1.8.2 2012-08-08
 - bugfix in querycache-hitrate (div by 0 after db restart). (Thanks Gianluca Varisco)
 
