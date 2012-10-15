@@ -395,7 +395,7 @@ sub calculate_result {
   # if mode = my-....
   # and there are some ok-messages
   # output them instead of "no problems"
-  if ($self->{mode} =~ /^my\-/ && $good_messages) {
+  if ($self->{mode} =~ /^my\:\:/ && $good_messages) {
     $all_messages_short = $bad_messages ? $bad_messages : $good_messages;
   }
   my $all_messages_html = "<table style=\"border-collapse: collapse;\">".
