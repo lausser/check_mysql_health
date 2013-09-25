@@ -13,6 +13,7 @@ sub new {
   my $self = {
     handle => $params{handle},
     uptime => $params{uptime},
+    replication_user => $params{replication_user},
     warningrange => $params{warningrange},
     criticalrange => $params{criticalrange},
     threads_connected => undef,
@@ -135,23 +136,23 @@ sub init {
         $self->{delta_timestamp};
   } elsif ($params{mode} =~ /server::instance::longprocs/) {
     if (DBD::MySQL::Server::return_first_server()->version_is_minimum("5.1")) {
-      ($self->{longrunners}) = $self->{handle}->fetchrow_array(q{
+      ($self->{longrunners}) = $self->{handle}->fetchrow_array(qq(
           SELECT
               COUNT(*)
           FROM
               information_schema.processlist
-          WHERE user <> 'replication' 
+          WHERE user <> '$self->{replication_user}'
           AND id <> CONNECTION_ID() 
           AND time > 60 
           AND command <> 'Sleep'
-      });
+      ));
     } else {
       $self->{longrunners} = 0 if ! defined $self->{longrunners};
       foreach ($self->{handle}->fetchall_array(q{
           SHOW PROCESSLIST
       })) {
         my($id, $user, $host, $db, $command, $tme, $state, $info) = @{$_};
-        if (($user ne 'replication') &&
+        if (($user ne $self->{replication_user}) &&
             ($tme > 60) &&
             ($command ne 'Sleep')) {
           $self->{longrunners}++;

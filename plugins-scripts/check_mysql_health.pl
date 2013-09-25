@@ -192,6 +192,8 @@ sub print_usage () {
        the mysql db user's password
     --database
        the database's name. (default: information_schema)
+    --replication-user
+       the database's replication user name (default: replication)
     --warning
        the warning range
     --critical
@@ -295,6 +297,7 @@ my @params = (
     "socket|S=s",
     "username|u=s",
     "password|p=s",
+    "replication-user=s",
     "mycnf=s",
     "mycnfgroup=s",
     "mode|m=s",
@@ -553,6 +556,7 @@ my %params = (
     password => $commandline{password} || 
         $ENV{NAGIOS__SERVICEMYSQL_PASS} ||
         $ENV{NAGIOS__HOSTMYSQL_PASS},
+    replication_user => $commandline{'replication-user'} || 'replication',
     mycnf => $commandline{mycnf} || 
         $ENV{NAGIOS__SERVICEMYSQL_MYCNF} ||
         $ENV{NAGIOS__HOSTMYSQL_MYCNF},
