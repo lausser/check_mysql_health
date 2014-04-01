@@ -307,6 +307,7 @@ my @params = (
     "dbthresholds:s",
     "absolute|a",
     "environment|e=s%",
+    "negate=s%",
     "method=s",
     "runas|r=s",
     "scream",
@@ -575,6 +576,7 @@ my %params = (
     verbose => $commandline{verbose},
     report => $commandline{report},
     labelformat => $commandline{labelformat},
+    negate => $commandline{negate},
 );
 
 my $server = undef;

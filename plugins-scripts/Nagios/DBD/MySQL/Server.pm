@@ -51,6 +51,7 @@ sub new {
     criticalrange => $params{criticalrange},
     verbose => $params{verbose},
     report => $params{report},
+    negate => $params{negate},
     labelformat => $params{labelformat},
     version => 'unknown',
     instance => undef,
@@ -290,17 +291,48 @@ sub check_thresholds {
       $self->{warningrange} : $defaultwarningrange;
   $self->{criticalrange} = defined $self->{criticalrange} ?
       $self->{criticalrange} : $defaultcriticalrange;
-  if ($self->{warningrange} !~ /:/ && $self->{criticalrange} !~ /:/) {
-    # warning = 10, critical = 20, warn if > 10, crit if > 20
-    $level = $ERRORS{WARNING} if $value > $self->{warningrange};
-    $level = $ERRORS{CRITICAL} if $value > $self->{criticalrange};
-  } elsif ($self->{warningrange} =~ /([\d\.]+):/ && 
-      $self->{criticalrange} =~ /([\d\.]+):/) {
-    # warning = 98:, critical = 95:, warn if < 98, crit if < 95
-    $self->{warningrange} =~ /([\d\.]+):/;
-    $level = $ERRORS{WARNING} if $value < $1;
-    $self->{criticalrange} =~ /([\d\.]+):/;
-    $level = $ERRORS{CRITICAL} if $value < $1;
+
+  if ($self->{warningrange} =~ /^([-+]?[0-9]*\.?[0-9]+)$/) {
+    # warning = 10, warn if > 10 or < 0
+    $level = $ERRORS{WARNING}
+        if ($value > $1 || $value < 0);
+  } elsif ($self->{warningrange} =~ /^([-+]?[0-9]*\.?[0-9]+):$/) {
+    # warning = 10:, warn if < 10
+    $level = $ERRORS{WARNING}
+        if ($value < $1);
+  } elsif ($self->{warningrange} =~ /^~:([-+]?[0-9]*\.?[0-9]+)$/) {
+    # warning = ~:10, warn if > 10
+    $level = $ERRORS{WARNING}
+        if ($value > $1);
+  } elsif ($self->{warningrange} =~ /^([-+]?[0-9]*\.?[0-9]+):([-+]?[0-9]*\.?[0-9]+)$/) {
+    # warning = 10:20, warn if < 10 or > 20
+    $level = $ERRORS{WARNING}
+        if ($value < $1 || $value > $2);
+  } elsif ($self->{warningrange} =~ /^@([-+]?[0-9]*\.?[0-9]+):([-+]?[0-9]*\.?[0-9]+)$/) {
+    # warning = @10:20, warn if >= 10 and <= 20
+    $level = $ERRORS{WARNING}
+        if ($value >= $1 && $value <= $2);
+  }
+  if ($self->{criticalrange} =~ /^([-+]?[0-9]*\.?[0-9]+)$/) {
+    # critical = 10, crit if > 10 or < 0
+    $level = $ERRORS{CRITICAL}
+        if ($value > $1 || $value < 0);
+  } elsif ($self->{criticalrange} =~ /^([-+]?[0-9]*\.?[0-9]+):$/) {
+    # critical = 10:, crit if < 10
+    $level = $ERRORS{CRITICAL}
+        if ($value < $1);
+  } elsif ($self->{criticalrange} =~ /^~:([-+]?[0-9]*\.?[0-9]+)$/) {
+    # critical = ~:10, crit if > 10
+    $level = $ERRORS{CRITICAL}
+        if ($value > $1);
+  } elsif ($self->{criticalrange} =~ /^([-+]?[0-9]*\.?[0-9]+):([-+]?[0-9]*\.?[0-9]+)$/) {
+    # critical = 10:20, crit if < 10 or > 20
+    $level = $ERRORS{CRITICAL}
+        if ($value < $1 || $value > $2);
+  } elsif ($self->{criticalrange} =~ /^@([-+]?[0-9]*\.?[0-9]+):([-+]?[0-9]*\.?[0-9]+)$/) {
+    # critical = @10:20, crit if >= 10 and <= 20
+    $level = $ERRORS{CRITICAL}
+        if ($value >= $1 && $value <= $2);
   }
   return $level;
   #
@@ -419,6 +451,15 @@ sub calculate_result {
   } elsif ($self->{report} eq "html") {
     $self->{nagios_message} .= $all_messages_short."\n".$all_messages_html;
   }
+  foreach my $from (keys %{$self->{negate}}) {
+    if ((uc $from) =~ /^(OK|WARNING|CRITICAL|UNKNOWN)$/ &&
+        (uc $self->{negate}->{$from}) =~ /^(OK|WARNING|CRITICAL|UNKNOWN)$/) {
+(uc $from), (uc $self->{negate}->{$from}), $ERRORS{uc $from}, $self->{nagios_level};
+      if ($self->{nagios_level} == $ERRORS{uc $from}) {
+        $self->{nagios_level} = $ERRORS{uc $self->{negate}->{$from}};
+      }
+    }
+  }
   if ($self->{labelformat} eq "pnp4nagios") {
     $self->{perfdata} = join(" ", @{$self->{nagios}->{perfdata}});
   } else {
@@ -452,8 +493,7 @@ sub set_global_db_thresholds {
   # 
   eval {
     if ($self->{handle}->fetchrow_array(q{
-        SELECT table_name
-        FROM information_schema.tables
+        SELECT table_name FROM information_schema.tables
         WHERE table_schema = ?
         AND table_name = 'CHECK_MYSQL_HEALTH_THRESHOLDS';
       }, $self->{database})) { # either --database... or information_schema

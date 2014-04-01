@@ -2,6 +2,10 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.8.4 2014-04-01
+- implement --negate old_level=new_level
+- allow floating point numbers in thresholds
+
 2.1.8.3 2012-10-15
 - output also ok-messages for my-modes
 
