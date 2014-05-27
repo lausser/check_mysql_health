@@ -377,6 +377,21 @@ sub add_nagios_unknown {
   $self->add_nagios($ERRORS{UNKNOWN}, $message);
 }
 
+sub add_nagios_force {
+  my $self = shift;
+  my $level = shift;
+  my $message = shift;
+  $self->{nagios}->{messages} = {
+        0 => [],
+        1 => [],
+        2 => [],
+        3 => []
+  };
+  push(@{$self->{nagios}->{messages}->{$level}}, $message);
+  $self->{nagios_level} = $level;
+}
+
+
 sub add_perfdata {
   my $self = shift;
   my $data = shift;
