@@ -25,6 +25,26 @@ for ($i = 1; $i <= $ds_count; $i++) {
     $minimum = ($MIN[$i] != "") ? $MIN[$i] : "";
     $maximum = ($MAX[$i] != "") ? $MAX[$i] : "";
 
+    if(preg_match('/^pct_open_files$/', $NAME[$i])) {
+        $ds_name[$defcnt] = "Open Files Usage";
+        $opt[$defcnt] = "--vertical-label \"Percent\" --title \"Open files usage on $hostname\" --upper-limit 100 --lower-limit 0";
+        $def[$defcnt] = ""; 
+        $def[$defcnt] .= "DEF:openfiles_pct=$RRDFILE[$i]:$DS[$i]:AVERAGE:reduce=LAST " ;
+        $def[$defcnt] .= "AREA:openfiles_pct#111111:\" \" ";
+        $def[$defcnt] .= "VDEF:vopenfiles=openfiles_pct,LAST " ;
+        $def[$defcnt] .= "GPRINT:vopenfiles:\"Open files usage is %3.2lf percent\\n\" " ;
+        $defcnt++;
+    }   
+    if(preg_match('/^connects_aborted_per_sec$/', $NAME[$i])) {
+        $ds_name[$defcnt] = "Aborted connections per second";
+        $opt[$defcnt] = "--vertical-label \"Seconds\" --title \"Aborted connections per second on $hostname\" ";
+        $def[$defcnt] = ""; 
+        $def[$defcnt] .= "DEF:aborted_conn=$RRDFILE[$i]:$DS[$i]:AVERAGE:reduce=LAST " ;
+        $def[$defcnt] .= "AREA:aborted_conn#444444:\" \" ";
+        $def[$defcnt] .= "VDEF:vaborted_conn=aborted_conn,LAST " ;
+        $def[$defcnt] .= "GPRINT:vaborted_conn:\"Aborted connections per sec is %3.2lf \\n\" " ;
+        $defcnt++;
+    }
     if(preg_match('/^connection_time$/', $NAME[$i])) {
         $ds_name[$defcnt] = "Time to connect";
         $opt[$defcnt] = "--vertical-label \"Seconds\" --title \"Time to establish a connection to $hostname\" ";
