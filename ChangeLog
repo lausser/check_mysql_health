@@ -2,6 +2,9 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.9.1 2014-06-12
+- add connections_aborted, open_files to the pnp template (Thanks Simon Meggle)
+
 2.1.9 2014-06-12
 - bugfix in pnp template (Thanks Simon Meggle)
 - bugfix in qcache calculation (Thanks lermit)
