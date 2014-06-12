@@ -13,8 +13,9 @@ $green = "33FF00E0";
 $yellow = "FFFF00E0";
 $red = "F83838E0";
 $now = "FF00FF";
+$ds_count = count($DS);
 
-foreach ($DS as $i) {
+for ($i = 1; $i <= $ds_count; $i++) {
     $warning = ($WARN[$i] != "") ? $WARN[$i] : "";
     $warnmin = ($WARN_MIN[$i] != "") ? $WARN_MIN[$i] : "";
     $warnmax = ($WARN_MAX[$i] != "") ? $WARN_MAX[$i] : "";
@@ -54,7 +55,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "Index usage";
         $opt[$defcnt] = "--vertical-label \"Percent\" --title \"Index usage $hostname\" --upper-limit 100 --lower-limit 0 ";
         $def[$defcnt] = "";
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^index_usage$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:indexusage=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "CDEF:ar=indexusage,$CRIT_MIN[$ii],LE,indexusage,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,indexusage,0,IF ";
@@ -80,7 +81,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "Innodb buffer pool hitrate";
         $opt[$defcnt] = "--vertical-label \"Percent\" --title \"Innodb buffer pool hitrate on $hostname\" --upper-limit 100 --lower-limit 0 ";
         $def[$defcnt] = "";
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^bufferpool_hitrate$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:hitrate=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "CDEF:ar=hitrate,$CRIT_MIN[$ii],LE,hitrate,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
@@ -136,7 +137,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "MyISAM key cache hitrate";
         $opt[$defcnt] = "--vertical-label \"Percent\" --title \"MyISAM key cache hitrate on $hostname\" --upper-limit 100 --lower-limit 0 ";
         $def[$defcnt] = "";
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^keycache_hitrate$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:hitrate=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "CDEF:ar=hitrate,$CRIT_MIN[$ii],LE,hitrate,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
@@ -162,7 +163,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "Query cache hitrate";
         $opt[$defcnt] = "--vertical-label \"Percent\" --title \"Query cache hitrate on $hostname\" --upper-limit 100 --lower-limit 0 ";
         $def[$defcnt] = ""; 
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^qcache_hitrate$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:hitrate=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "CDEF:ar=hitrate,$CRIT_MIN[$ii],LE,hitrate,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
@@ -186,7 +187,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "Selects per second";
         $opt[$defcnt] = "--vertical-label \"Selects / sec\" --title \"Selects per second on $hostname\" ";
         $def[$defcnt] = ""; 
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^selects_per_sec$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:sps=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "AREA:sps#$now:\" \" ";
@@ -221,7 +222,7 @@ foreach ($DS as $i) {
         # set upper limit to 10, because 3 means an already dead database
         $opt[$defcnt] = "--vertical-label \"Percent\" --title \"Table lock contention on $hostname\" --upper-limit 10 --lower-limit 0 ";
         $def[$defcnt] = "";
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^tablelock_contention$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:tbllckcont=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "CDEF:ag=tbllckcont,$WARN[$ii],LE,tbllckcont,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,tbllckcont,0,IF ";
@@ -247,7 +248,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "Table cache hitrate";
         $opt[$defcnt] = "--vertical-label \"Percent\" --title \"Table cache hitrate on $hostname\" --upper-limit 100 --lower-limit 0 ";
         $def[$defcnt] = "";
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^tablecache_hitrate$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:hitrate=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "CDEF:ar=hitrate,$CRIT_MIN[$ii],LE,hitrate,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
@@ -273,7 +274,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "Temporary tables created on disk ";
         $opt[$defcnt] = "--vertical-label \"Percent\" --title \"Temporary tables created on disk on $hostname\" --upper-limit 10 --lower-limit 0 ";
         $def[$defcnt] = "";
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^pct_tmp_table_on_disk$/', $NAME[$ii])) {
 
             $def[$defcnt] .= "DEF:tmptbldsk=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
@@ -300,7 +301,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "Thread cache hitrate";
         $opt[$defcnt] = "--vertical-label \"Percent\" --title \"Thread cache hitrate on $hostname\" --upper-limit 100 --lower-limit 0 ";
         $def[$defcnt] = ""; 
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^thread_cache_hitrate$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:hitrate=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "CDEF:ar=hitrate,$CRIT_MIN[$ii],LE,hitrate,0,GT,INF,UNKN,IF,UNKN,IF,ISINF,hitrate,0,IF ";
@@ -324,7 +325,7 @@ foreach ($DS as $i) {
         $ds_name[$defcnt] = "Connects per second";
         $opt[$defcnt] = "--vertical-label \"Conects / sec\" --title \"Connects per second on $hostname\" ";
         $def[$defcnt] = ""; 
-        foreach ($DS as $ii) {
+	for ($ii = 1; $ii <= $ds_count; $ii++) {
           if(preg_match('/^connections_per_sec$/', $NAME[$ii])) {
             $def[$defcnt] .= "DEF:sps=$RRDFILE[$ii]:$DS[$ii]:AVERAGE:reduce=LAST " ;
             $def[$defcnt] .= "AREA:sps#$now:\" \" ";
