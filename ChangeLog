@@ -2,6 +2,10 @@
 # Changelog of the check_mysql_health plugin #
 ###############################################
 
+2.1.9 2014-06-12
+- bugfix in pnp template (Thanks Simon Meggle)
+- bugfix in qcache calculation (Thanks lermit)
+
 2.1.8.4 2014-04-01
 - implement --negate old_level=new_level
 - allow floating point numbers in thresholds
