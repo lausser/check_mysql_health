@@ -44,6 +44,7 @@ sub new {
     socket => $params{socket},
     username => $params{username},
     password => $params{password},
+    replication_user => $params{replication_user},
     mycnf => $params{mycnf},
     mycnfgroup => $params{mycnfgroup},
     timeout => $params{timeout},
