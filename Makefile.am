@@ -1,13 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
-# find . \( -type d -and -name .svn -and -prune \) -or -type f -exec fromdos -v {} \;
-
-SUBDIRS = plugins-scripts t
+SUBDIRS = plugins-scripts
+DOS2UNIX=$(shell which dos2unix || which fromdos)
 EXTRA_DIST = contrib
 
 dist-hook:
 	rm -f t/var/tmp/*
 	rm -f t/var/adm/*
-	find $(distdir) -depth -name .svn -exec rm -rf {} \;
-	find $(distdir) -type f -exec fromdos -v {} \;
+	find $(distdir) -type f -exec $(DOS2UNIX) {} >/dev/null 2>&1 \;
 	make

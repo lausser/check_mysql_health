@@ -1,20 +1,40 @@
-## Process this file with automake to produce Makefile.in
+libexec_SCRIPTS=check_mysql_health
+GL_MODULES=\
+  ../GLPlugin/lib/Monitoring/GLPlugin/Commandline/Getopt.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin/Commandline.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin/Item.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin/TableItem.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin/DB.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin/DB/DBI.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin/DB/CSF.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin/DB/Item.pm \
+  ../GLPlugin/lib/Monitoring/GLPlugin/DB/TableItem.pm
+EXTRA_MODULES=\
+  Classes/Mysql/Component/ConnectionSubsystem.pm \
+  Classes/Mysql/Component/ReplicationSubsystem.pm \
+  Classes/Mysql/SqlRelay.pm \
+  Classes/Mysql/Mysql.pm \
+  Classes/Mysql/DBI.pm \
+  Classes/Mysql.pm \
+  Classes/Device.pm
+
+
+SED=/bin/sed
+GREP=/bin/grep
+CAT=/bin/cat
+ECHO=/bin/echo
+if DISABLE_STANDALONE
+STANDALONE = no
+else
+STANDALONE = yes
+endif
 
 SUFFIXES = .pl .pm .sh
 
 VPATH=$(top_srcdir) $(top_srcdir)/plugins-scripts $(top_srcdir)/plugins-scripts/t
 
-libexec_SCRIPTS=check_mysql_health
-MY_MODULES=
-EXTRA_MODULES=\
-  Nagios/DBD/MySQL/Server/Instance/Innodb.pm \
-  Nagios/DBD/MySQL/Server/Instance/Myisam.pm \
-  Nagios/DBD/MySQL/Server/Instance/Replication.pm \
-  Nagios/DBD/MySQL/Server/Instance.pm \
-  Nagios/DBD/MySQL/Server.pm \
-  Nagios/DBD/MySQL/Cluster.pm \
-  Nagios/Extraopts.pm
-EXTRA_DIST=check_mysql_health.pl $(EXTRA_MODULES)
+EXTRA_DIST=$(libexec_SCRIPTS).pl $(EXTRA_MODULES) $(GL_MODULES)
 
 CLEANFILES=$(libexec_SCRIPTS)
 
@@ -36,18 +56,16 @@ $(libexec_SCRIPTS) : $(EXTRA_DIST)
 	$(ECHO) "#! #PERL# -w" | $(AWK) -f ./subst > $@
 	$(ECHO) "# nagios: -epn" >> $@
 	$(ECHO) >> $@
-	$(ECHO) "my %ERRORS=( OK => 0, WARNING => 1, CRITICAL => 2, UNKNOWN => 3 );" >> $@
-	$(ECHO) "my %ERRORCODES=( 0 => 'OK', 1 => 'WARNING', 2 => 'CRITICAL', 3 => 'UNKNOWN' );" >> $@
-	for m in ${EXTRA_MODULES}; do \
-		$(SED) -e 's/^1;//g' < $$m | $(AWK) -f ./subst | $(GREP) -v "my %ERROR" >> $@; \
-	done
-	if [ -d "${MYMODULES_DIR}" ]; then \
-		for m in ${MYMODULES_DIR}/CheckMySQLHealthExt*.pm; do \
-			if [ -f $$m ]; then \
-				$(ECHO) found $$m; \
-				$(SED) -e 's/^1;//g' < $$m | $(AWK) -f ./subst | $(GREP) -v "my %ERROR" >> $@; \
-			fi \
+	if [ "${STANDALONE}" == "yes" ]; then \
+		$(ECHO) i am standalone; \
+		for m in ${GL_MODULES}; do \
+			$(SED) -e 's/^1;//g' < $$m | $(SED) -e '/^__END__/,$$d' | $(SED) -e '/^__PACKAGE__/,$$d' | $(AWK) -f ./subst >> $@; \
 		done \
 	fi
-	$(CAT) check_mysql_health.pl | $(GREP) -v "^use Nagios" | $(GREP) -v "^my %ERROR" | $(AWK) -f ./subst >> $@
+	for m in ${EXTRA_MODULES}; do \
+		$(SED) -e 's/^1;//g' < $$m | $(SED) -e '/^__END__/,$$d' | $(AWK) -f ./subst >> $@; \
+	done
+	$(ECHO) "package main;" >> $@
+	$(CAT) $(libexec_SCRIPTS).pl | $(AWK) -f ./subst >> $@
 	chmod +x $@
+
