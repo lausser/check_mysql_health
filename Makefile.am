@@ -2,7 +2,7 @@
 
 SUBDIRS = plugins-scripts
 DOS2UNIX=$(shell which dos2unix || which fromdos)
-EXTRA_DIST = contrib
+EXTRA_DIST = contrib t
 
 dist-hook:
 	rm -f t/var/tmp/*

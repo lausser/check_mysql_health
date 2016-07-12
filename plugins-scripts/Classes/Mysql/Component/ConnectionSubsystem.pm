@@ -26,16 +26,30 @@ sub init {
   } elsif ($self->mode =~ /server::instance::threadcachehitrate/) {
     $self->{threads_created} = $self->get_status_var('Threads_created');
     $self->{connections} = $self->get_status_var('Connections');
-    $self->valdiff({ name => 'threads_created_connections' }, qw(threads_created connections));
+    $self->valdiff({ name => 'threads_created_connections' },
+        qw(threads_created connections));
     if ($self->{delta_connections} > 0) {
-      $self->{threadcache_hitrate_now} =
+      $self->{threadcache_hitrate} =
           100 - ($self->{delta_threads_created} * 100.0 /
           $self->{delta_connections});
     } else {
-      $self->{threadcache_hitrate_now} = 100;
+      $self->{threadcache_hitrate} = 100;
     }
-    $self->{threadcache_hitrate} = 100 -
-        ($self->{threads_created} * 100.0 / $self->{connections});
+    $self->set_thresholds(metric => 'threadcache_hitrate',
+        warning => '90:', critical => '80:');
+    $self->add_message($self->check_thresholds(
+        metric => 'threadcache_hitrate',
+        value => $self->{threadcache_hitrate}),
+        sprintf "thread cache hitrate %.2f%%", $self->{threadcache_hitrate});
+    $self->add_perfdata(
+        label => 'thread_cache_hitrate',
+        value => $self->{threadcache_hitrate},
+        uom => '%',
+    );
+    $self->add_perfdata(
+        label => 'connections_per_sec',
+        value => $self->{connections_per_sec},
+    );
   }
 }
 
