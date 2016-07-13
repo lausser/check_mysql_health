@@ -57,7 +57,7 @@ AC_ARG_ENABLE([standalone],
     AS_HELP_STRING([--disable-standalone], [Disable feature standalone]))
 AM_CONDITIONAL([DISABLE_STANDALONE], [test "$enable_standalone" = "no"])
 
-AC_OUTPUT(Makefile plugins-scripts/Makefile plugins-scripts/subst)
+AC_OUTPUT(Makefile plugins-scripts/Makefile plugins-scripts/subst t/Makefile)
 
 ACX_FEATURE([with],[perl])
 ACX_FEATURE([with],[nagios-user])

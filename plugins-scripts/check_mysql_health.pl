@@ -28,12 +28,6 @@ my $plugin = Classes::Device->new(
 );
 $plugin->add_db_modes();
 $plugin->add_mode(
-    internal => 'server::connectiontime',
-    spec => 'connection-time',
-    alias => undef,
-    help => 'Time to connect to the server',
-);
-$plugin->add_mode(
     internal => 'server::uptime',
     spec => 'uptime',
     alias => undef,
@@ -188,12 +182,6 @@ $plugin->add_mode(
     spec => 'cluster-ndbd-running',
     alias => undef,
     help => 'ndnd nodes are up and running',
-);
-$plugin->add_mode(
-    internal => 'server::sql',
-    spec => 'sql',
-    alias => undef,
-    help => 'any sql command returning a single number',
 );
 
 $plugin->add_arg(

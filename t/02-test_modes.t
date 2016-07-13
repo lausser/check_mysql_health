@@ -1,0 +1,195 @@
+#! /usr/bin/perl --warning -I ..
+#
+# MySQL Database Server Tests via check_mysql_healthdb
+#
+#
+# These are the database permissions required for this test:
+#  GRANT SELECT ON $db.* TO $user@$host INDENTIFIED BY '$password';
+#  GRANT SUPER, REPLICATION CLIENT ON *.* TO $user@$host;
+# Check with:
+#  mysql -u$user -p$password -h$host $db
+
+use strict;
+use Test::More;
+use NPTest;
+
+use vars qw($tests);
+
+plan skip_all => "check_mysql_health not compiled" unless (-x "../plugins-scripts/check_mysql_health" || -x "plugins-scripts/check_mysql_health");
+
+plan tests => 51;
+
+my $mysqlserver = getTestParameter(
+    "NP_MYSQL_SERVER",
+    "A MySQL Server with no slaves setup",
+    "localhost",
+);      
+my $mysql_username = getTestParameter(
+    "NP_MYSQL_LOGIN_USERNAME",
+    "Command line parameters to specify login access",
+    "user",
+);      
+my $mysql_password = getTestParameter(
+    "NP_MYSQL_LOGIN_PASSWORD",
+    "Command line parameters to specify login access",
+    "pw",
+);      
+my $mysql_database = getTestParameter(
+    "NP_MYSQL_LOGIN_DATABASE",
+    "Command line parameters to specify login access",
+    "db",
+);      
+my $with_slave = getTestParameter(
+    "NP_MYSQL_WITH_SLAVE",
+    "MySQL server with slaves setup",
+    undef,
+);      
+my $with_slave_login = getTestParameter(
+    "NP_MYSQL_WITH_SLAVE_LOGIN",
+    "Login details for server with slave",
+    "--username user --password pw --database db",
+);      
+
+my $host_login = sprintf "--hostname %s --username %s --password '%s'",
+    $mysqlserver, $mysql_username, $mysql_password;
+
+my $result;
+
+SKIP: {
+  $result = NPTest->testCmd("check_mysql_health --hostname $mysqlserver --mode connection-time --username dummy --password dummy");
+  cmp_ok( $result->return_code, '==', 2, "Login failure");
+  like( $result->output, "/CRITICAL - .*Access denied/", "Expected login failure message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode connection-time --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success connection-time");
+	like( $result->output, "/OK - [\d\.]+ seconds to connect as .* | 'connection_time'=([0-9\.]+);10;30/", "Expected connection-time message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode sql --warning 10 --critical 30 --name 'SELECT 20 FROM DUAL' --name2 test");
+  cmp_ok( $result->return_code, "==", 1, "Success sql");
+  like( $result->output, "/WARNING - test: 20 | 'test'=20;10;30;;/", "Expected sql message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode sql-runtime --warning 10 --critical 30 --name 'SELECT 20 FROM DUAL' --name2 test");
+  cmp_ok( $result->return_code, "==", 0, "Success sql-runtime");
+  like( $result->output, "/[\\d\\.]+ seconds to execute test/", "Expected sql-runtime message");
+
+  $result = NPTest->testCmd("echo 'SELECT * FROM DUAL' | check_mysql_health $host_login --mode encode --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success encode");
+  like( $result->output, "/SELECT%20%2A%20FROM%20DUAL/", "Expected encode message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode uptime --warning 10: --critical 30:");
+  cmp_ok( $result->return_code, "==", 0, "Success uptime");
+  like( $result->output, "/(OK|WARNING|CRITICAL) - database is up since \\d+ minutes | 'uptime'=\\d+;10:;30:;;/", "Expected uptime message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode threads-connected --warning 11 --critical 31");
+  cmp_ok( $result->return_code, "==", 0, "Success threads-connected");
+  like( $result->output, "/(OK|WARNING|CRITICAL) - \\d+ client connection threads | 'threads_connected'=\\d+;11;31;;/", "Expected threads-connected message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode threads-connected --warning 0 --critical 1");
+  cmp_ok( $result->return_code, "==", 1, "Success threads-connected");
+  like( $result->output, "/(WARNING|CRITICAL) - \\d+ client connection threads | 'threads_connected'=\\d+;11;31;;/", "Expected max threads-connected message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode threadcache-hitrate --warning 90: --critical 75:");
+  cmp_ok( $result->return_code, "<=", 2, "Success threadcache-hitrate");
+  like( $result->output, "/(OK|WARNING|CRITICAL) - thread cache hitrate \\d+.\\d\\d% | 'thread_cache_hitrate'=\[\\d\\.\]+%;;;0;100 'connections_per_sec'=\[\\d\\.\]+;;;;/", "Expected threadcache-hitrate message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode threads-created --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success threads-created");
+  like( $result->output, "/(OK|WARNING|CRITICAL) - \[\\d\\.\]+ threads created/sec | 'threads_created_per_sec'=\[\\d\\.\]+;;;;/", "Expected threads-created message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode threads-running --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success threads-running");
+  like( $result->output, "/(OK|WARNING|CRITICAL) - \\d+ running threads | 'threads_running'=\\d+;10;30;;/", "Expected threads-running message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode threads-running --warning 0 --critical 1");
+  cmp_ok( $result->return_code, ">=", 0, "Success threads-running");
+  like( $result->output, "/(WARNING|CRITICAL) - \\d+ running threads | 'threads_running'=\\d+;10;30;;/", "Expected threads-running message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode threads-cached --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success threads-cached");
+  like( $result->output, "/(OK|WARNING|CRITICAL) - \\d+ cached threads | 'threads_cached'=\\d+;10;30;;/", "Expected threads-cached message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode connects-aborted --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success connects-aborted");
+  like( $result->output, "/xxx/", "Expected connects-aborted message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode clients-aborted --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success clients-aborted");
+  like( $result->output, "/xxx/", "Expected clients-aborted message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode qcache-hitrate --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success qcache-hitrate");
+  like( $result->output, "/xxx/", "Expected qcache-hitrate message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode qcache-lowmem-prunes --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success qcache-lowmem-prunes");
+  like( $result->output, "/xxx/", "Expected qcache-lowmem-prunes message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode keycache-hitrate --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success keycache-hitrate");
+  like( $result->output, "/xxx/", "Expected keycache-hitrate message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode bufferpool-hitrate --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success bufferpool-hitrate");
+  like( $result->output, "/xxx/", "Expected bufferpool-hitrate message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode bufferpool-wait-free --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success bufferpool-wait-free");
+  like( $result->output, "/xxx/", "Expected bufferpool-wait-free message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode log-waits --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success log-waits");
+  like( $result->output, "/xxx/", "Expected log-waits message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode tablecache-hitrate --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success tablecache-hitrate");
+  like( $result->output, "/xxx/", "Expected tablecache-hitrate message");
+#------
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode table-lock-contention --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success table-lock-contention");
+  like( $result->output, "/xxx/", "Expected table-lock-contention message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode index-usage --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success index-usage");
+  like( $result->output, "/xxx/", "Expected index-usage message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode tmp-disk-tables --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success tmp-disk-tables");
+  like( $result->output, "/xxx/", "Expected tmp-disk-tables message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode table-fragmentation --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success table-fragmentation");
+  like( $result->output, "/xxx/", "Expected table-fragmentation message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode open-files --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success open-files");
+  like( $result->output, "/xxx/", "Expected open-files message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode slow-queries --warning 10 --critical 30 -vvvvvvvvvvvvvvvvvv");
+  cmp_ok( $result->return_code, "==", 0, "Success slow-queries");
+  like( $result->output, "/xxx/", "Expected slow-queries message");
+  ok( $result->output =~ /Load variable Slow_queries \(([0-9]+)\) /);
+  my $slow_queries_last = $1;
+  ok( $result->output =~ /Result column 1 returns value ([0-9]+) /);
+  my $slow_queries = $1;
+  my $delta = $slow_queries - $slow_queries_last;
+  ok( $result->output =~ /OK - ([0-9]+) slow queries/);
+  cmp_ok($1, "==", $delta);
+
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode long-running-procs --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success long-running-procs");
+  like( $result->output, "/xxx/", "Expected long-running-procs message");
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode cluster-ndbd-running --warning 10 --critical 30");
+  cmp_ok( $result->return_code, "==", 0, "Success cluster-ndbd-running");
+  like( $result->output, "/xxx/", "Expected cluster-ndbd-running message");
+}
