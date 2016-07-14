@@ -11,6 +11,8 @@ GL_MODULES=\
   ../GLPlugin/lib/Monitoring/GLPlugin/DB/Item.pm \
   ../GLPlugin/lib/Monitoring/GLPlugin/DB/TableItem.pm
 EXTRA_MODULES=\
+  Classes/Mysql/Component/InnoDBSubsystem.pm \
+  Classes/Mysql/Component/QueryCacheSubsystem.pm \
   Classes/Mysql/Component/ConnectionSubsystem.pm \
   Classes/Mysql/Component/ReplicationSubsystem.pm \
   Classes/Mysql/SqlRelay.pm \

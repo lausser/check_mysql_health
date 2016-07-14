@@ -19,8 +19,14 @@ sub init {
       label => 'uptime',
       value => $self->get_variable('uptime'),
     );
-  } elsif ($self->mode =~ /^server::instance::(thread|(.*threads$))/) {
+  } elsif ($self->mode =~ /^server::instance::(thread|(.*threads$)|(.*connects$)|(.*clients$))/) {
     $self->analyze_and_check_connection_subsystem("Classes::Mysql::Component::ConnectionSubsystem");
+    $self->reduce_messages_short();
+  } elsif ($self->mode =~ /^server::instance::querycache/) {
+    $self->analyze_and_check_qcache_subsystem("Classes::Mysql::Component::QueryCacheSubsystem");
+    $self->reduce_messages_short();
+  } elsif ($self->mode =~ /^server::instance::innodb/) {
+    $self->analyze_and_check_innodb_subsystem("Classes::Mysql::Component::InnoDBSubsystem");
     $self->reduce_messages_short();
   } elsif ($self->mode =~ /^server::instance::replication/) {
     $self->analyze_and_check_replication_subsystem("Classes::Mysql::Component::ReplicationSubsystem");
@@ -32,17 +38,11 @@ sub init {
 
 sub check_version {
   my $self = shift;
-  my ($dummyv, $version) = $self->fetchrow_array(q{
-    SHOW VARIABLES LIKE 'version'
-  });
+  my $version = $self->get_system_var("version");
   $self->set_variable("product", ($version =~ /mariadb/i ? 'mariadb' : 'mysql'));
   $version =~ s/([\d\.]+)/$1/g;
-  my ($dummyu, $uptime) = $self->fetchrow_array(q{
-    SHOW STATUS LIKE 'uptime'
-  });
-  my ($dummyo, $os) = $self->fetchrow_array(q{
-    SHOW VARIABLES LIKE 'version_compile_os'
-  });
+  my $uptime = $self->get_status_var("uptime");
+  my $os = $self->get_status_var("version_compile_os");
   $self->set_variable("version", $version);
   $self->set_variable("uptime", int($uptime / 60));
   $self->set_variable("os", $os);
@@ -78,6 +78,14 @@ sub create_statefile {
       $self->opts->mode, lc $extension;
 }
 
+sub get_system_var {
+  my ($self, $var) = @_;
+  my ($dummy, $value) = $self->fetchrow_array(
+      sprintf("SHOW VARIABLES LIKE '%s'", $var)
+  );
+  return $value;
+}
+
 sub get_status_var {
   my ($self, $var) = @_;
   my ($dummy, $value) = $self->fetchrow_array(
@@ -103,9 +111,9 @@ sub get_check_status_var_sec {
   my ($self, $var, $varname, $warn, $crit, $text) = @_;
   $self->{$var} = $self->get_status_var($varname);
   $self->valdiff({ name => $var }, ($var));
-  $self->set_thresholds(metric => $var, warning => $warn, critical => $crit);
+  $self->set_thresholds(metric => $var.'_per_sec', warning => $warn, critical => $crit);
   $self->add_message($self->check_thresholds(
-      metric => $var, value => $self->{$var.'_per_sec'}),
+      metric => $var.'_per_sec', value => $self->{$var.'_per_sec'}),
       sprintf $text, $self->{$var.'_per_sec'});
   $self->add_perfdata(
       label => $var.'_per_sec',
@@ -143,4 +151,5 @@ sub compatibility_methods {
     $self->SUPER::compatibility_methods() if $self->SUPER::can('compatibility_methods');
   }
 }
+
 

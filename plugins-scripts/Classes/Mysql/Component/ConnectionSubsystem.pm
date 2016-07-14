@@ -1,5 +1,5 @@
 package Classes::Mysql::Component::ConnectionSubsystem;
-our @ISA = qw(Monitoring::GLPlugin::DB::Item);
+our @ISA = qw(Monitoring::GLPlugin::DB::Item Classes::Mysql);
 use strict;
 
 sub init {
@@ -21,8 +21,8 @@ sub init {
     $self->get_check_status_var_sec('connects_aborted', 'Aborted_connects',
         1, 5, '%.2f aborted connections/sec');
   } elsif ($self->mode =~ /server::instance::abortedclients/) {
-    $self->get_check_status_var_sec('connects_aborted', 'Aborted_clients',
-        1, 5, '%.2f aborted clients/sec');
+    $self->get_check_status_var_sec('clients_aborted', 'Aborted_clients',
+        1, 5, '%.2f aborted (client died) connections/sec');
   } elsif ($self->mode =~ /server::instance::threadcachehitrate/) {
     $self->{threads_created} = $self->get_status_var('Threads_created');
     $self->{connections} = $self->get_status_var('Connections');
@@ -51,40 +51,5 @@ sub init {
         value => $self->{connections_per_sec},
     );
   }
-}
-
-sub get_status_var {
-  my ($self, $var) = @_;
-  my ($dummy, $value) = $self->fetchrow_array(
-      sprintf("SHOW /*!50000 global */ STATUS LIKE '%s'", $var)
-  );
-  return $value;
-}
-
-sub get_check_status_var {
-  my ($self, $var, $varname, $warn, $crit, $text) = @_;
-  $self->{$var} = $self->get_status_var($varname);
-  $self->set_thresholds(metric => $var, warning => $warn, critical => $crit);
-  $self->add_message($self->check_thresholds(
-      metric => $var, value => $self->{$var}),
-      sprintf $text, $self->{$var});
-  $self->add_perfdata(
-      label => $var,
-      value => $self->{$var},
-  );
-}
-
-sub get_check_status_var_sec {
-  my ($self, $var, $varname, $warn, $crit, $text) = @_;
-  $self->{$var} = $self->get_status_var($varname);
-  $self->valdiff({ name => $var }, ($var));
-  $self->set_thresholds(metric => $var, warning => $warn, critical => $crit);
-  $self->add_message($self->check_thresholds(
-      metric => $var, value => $self->{$var.'_per_sec'}),
-      sprintf $text, $self->{$var.'_per_sec'});
-  $self->add_perfdata(
-      label => $var.'_per_sec',
-      value => $self->{$var.'_per_sec'},
-  );
 }
 
