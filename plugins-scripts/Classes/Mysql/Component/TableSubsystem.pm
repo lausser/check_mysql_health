@@ -112,6 +112,30 @@ printf "%s\n", $self->mode();
     };
     $self->{index_usage} = 0 if $@ =~ /division/;
     $self->check_var('index_usage', '90:', '80:', 'index usage  %.2f%%', '%');
+  } elsif ($self->mode =~ /server::instance::needoptimize/) {
+    $self->{fragmented} = [];
+    #http://www.electrictoolbox.com/optimize-tables-mysql-php/
+    my  @result = $self->fetchall_array(q{
+        SHOW TABLE STATUS
+    });
+    foreach (@result) {
+      my ($name, $engine, $data_length, $data_free) =
+          ($_->[0], $_->[1], $_->[6 ], $_->[9]);
+      next if ($params{name} && $params{name} ne $name);
+      my $fragmentation = $data_length ? $data_free * 100 / $data_length : 0;
+      push(@{$self->{fragmented}},
+          [$name, $fragmentation, $data_length, $data_free]);
+    }
+      foreach (@{$self->{fragmented}}) {
+        $self->add_nagios(
+            $self->check_thresholds($_->[1], 10, 25),
+            sprintf "table %s is %.2f%% fragmented", $_->[0], $_->[1]);
+        if ($params{name}) {
+          $self->add_perfdata(sprintf "'%s_frag'=%.2f%%;%d;%d",
+              $_->[0], $_->[1], $self->{warningrange}, $self->{criticalrange});
+        }
+      }
+
   }
 }
 
