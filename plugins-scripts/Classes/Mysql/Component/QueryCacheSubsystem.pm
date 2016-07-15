@@ -60,21 +60,9 @@ sub init {
         value => $self->{com_select_per_sec},
     );
   } elsif ($self->mode =~ /server::instance::querycachelowmemprunes/) {
-    $self->{lowmem_prunes} = $self->get_status_var('Qcache_lowmem_prunes');
-    $self->valdiff({ name => 'querycachelowmemprunes' },
-        qw(lowmem_prunes));
-    $self->set_thresholds(metric => 'qcache_lowmem_prunes_rate',
-        warning => 1, critical => 10);
-    $self->add_message($self->check_thresholds(
-        metric => 'qcache_lowmem_prunes_rate',
-        value => $self->{lowmem_prunes_per_sec}),
-        sprintf "%d query cache lowmem prunes in %d seconds (%.2f/sec)",
-            $self->{delta_lowmem_prunes}, $self->{delta_timestamp},
-            $self->{lowmem_prunes_per_sec}
-    );
-    $self->add_perfdata(
-        label => 'qcache_lowmem_prunes_rate',
-        value => $self->{lowmem_prunes_per_sec}
+    $self->get_check_status_var_rate('qcache_lowmem_prunes',
+        'Qcache_lowmem_prunes', 1, 10,
+        '%d query cache lowmem prunes in %d seconds (%.2f/sec)'
     );
   }
 }

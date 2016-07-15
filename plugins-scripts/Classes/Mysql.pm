@@ -28,6 +28,12 @@ sub init {
   } elsif ($self->mode =~ /^server::instance::innodb/) {
     $self->analyze_and_check_innodb_subsystem("Classes::Mysql::Component::InnoDBSubsystem");
     $self->reduce_messages_short();
+  } elsif ($self->mode =~ /^server::instance::myisam/) {
+    $self->analyze_and_check_myisam_subsystem("Classes::Mysql::Component::MyIsamSubsystem");
+    $self->reduce_messages_short();
+  } elsif ($self->mode =~ /^server::instance::table.*/) {
+    $self->analyze_and_check_table_subsystem("Classes::Mysql::Component::TableSubsystem");
+    $self->reduce_messages_short();
   } elsif ($self->mode =~ /^server::instance::replication/) {
     $self->analyze_and_check_replication_subsystem("Classes::Mysql::Component::ReplicationSubsystem");
     $self->reduce_messages_short();
@@ -42,7 +48,7 @@ sub check_version {
   $self->set_variable("product", ($version =~ /mariadb/i ? 'mariadb' : 'mysql'));
   $version =~ s/([\d\.]+)/$1/g;
   my $uptime = $self->get_status_var("uptime");
-  my $os = $self->get_status_var("version_compile_os");
+  my $os = $self->get_system_var("version_compile_os");
   $self->set_variable("version", $version);
   $self->set_variable("uptime", int($uptime / 60));
   $self->set_variable("os", $os);
@@ -98,9 +104,9 @@ sub get_check_status_var {
   my ($self, $var, $varname, $warn, $crit, $text) = @_;
   $self->{$var} = $self->get_status_var($varname);
   $self->set_thresholds(metric => $var, warning => $warn, critical => $crit);
+  $self->add_info(sprintf $text, $self->{$var});
   $self->add_message($self->check_thresholds(
-      metric => $var, value => $self->{$var}),
-      sprintf $text, $self->{$var});
+      metric => $var, value => $self->{$var}));
   $self->add_perfdata(
       label => $var,
       value => $self->{$var},
@@ -112,11 +118,41 @@ sub get_check_status_var_sec {
   $self->{$var} = $self->get_status_var($varname);
   $self->valdiff({ name => $var }, ($var));
   $self->set_thresholds(metric => $var.'_per_sec', warning => $warn, critical => $crit);
+  $self->add_info(sprintf $text, $self->{$var.'_per_sec'});
   $self->add_message($self->check_thresholds(
-      metric => $var.'_per_sec', value => $self->{$var.'_per_sec'}),
-      sprintf $text, $self->{$var.'_per_sec'});
+      metric => $var.'_per_sec', value => $self->{$var.'_per_sec'}));
   $self->add_perfdata(
       label => $var.'_per_sec',
+      value => $self->{$var.'_per_sec'},
+  );
+}
+
+sub check_var {
+  my ($self, $var, $warn, $crit, $text, $uom) = @_;
+  $self->set_thresholds(metric => $var, warning => $warn, critical => $crit);
+  $self->add_info(sprintf $text, $self->{$var});
+  $self->add_message($self->check_thresholds(
+      metric => $var, value => $self->{$var}));
+  $self->add_perfdata(
+      label => $var,
+      value => $self->{$var},
+      uom => $uom,
+  );
+}
+
+# --> qcache_lowmem_prunes Qcache_lowmem_prunes 1 10 %d query cache lowmem prunes in %d seconds (%.2f/sec)
+# <-- delta_qcache_lowmem_prunes, delta_time, qcache_lowmem_prunes_per_sec
+# <-- qcache_lowmem_prunes_rate=qcache_lowmem_prunes_per_sec
+sub get_check_status_var_rate {
+  my ($self, $var, $varname, $warn, $crit, $text) = @_;
+  $self->{$var} = $self->get_status_var($varname);
+  $self->valdiff({ name => $var }, ($var));
+  $self->set_thresholds(metric => $var.'_rate', warning => $warn, critical => $crit);
+  $self->add_info(sprintf $text, $self->{'delta_'.$var}, $self->{delta_timestamp}, $self->{$var.'_per_sec'});
+  $self->add_message($self->check_thresholds(
+      metric => $var.'_rate', value => $self->{$var.'_per_sec'}));
+  $self->add_perfdata(
+      label => $var.'_rate',
       value => $self->{$var.'_per_sec'},
   );
 }

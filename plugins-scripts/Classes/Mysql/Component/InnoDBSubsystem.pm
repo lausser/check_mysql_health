@@ -4,13 +4,22 @@ use strict;
 
 sub init {
   my $self = shift;
-  my $sql = undef;
-  
-  my $has_innodb = $self->get_system_var('have_innodb');
-  if ($has_innodb eq "NO") {
+  if ($self->version_is_minimum("5.1")) {
+    $self->{has_innodb} = $self->get_system_var('have_innodb');
+  } else {
+    ($self->{has_innodb}) = $self->fetchrow_array(q{
+        SELECT
+          ENGINE, SUPPORT
+        FROM
+          INFORMATION_SCHEMA.ENGINES
+        WHERE
+          ENGINE='InnoDB'
+    });
+  }
+  if ($self->{has_innodb} eq "NO") {
     $self->add_critical("the innodb engine has a problem (have_innodb=no)");
     return;
-  } elsif ($has_innodb eq "DISABLED") {
+  } elsif ($self->{has_innodb} eq "DISABLED") {
     $self->add_critical("the innodb engine has been disabled");
     return;
   }
@@ -18,7 +27,7 @@ sub init {
     $self->{bufferpool_reads} = $self->get_status_var('Innodb_buffer_pool_reads');
     $self->{bufferpool_read_requests} = $self->get_status_var('Innodb_buffer_pool_read_requests');
     $self->valdiff({ name => 'bufferpool_reads' },
-        qw(bufferpool_reads bufferpool_read_requests connections));
+        qw(bufferpool_reads bufferpool_read_requests));
     eval {
       $self->{bufferpool_hitrate} = 100 -
           100 * $self->{bufferpool_reads} /
@@ -37,7 +46,17 @@ sub init {
         value => $self->{bufferpool_hitrate},
         uom => '%',
     );
-  } elsif ($self->mode =~ /server::instance::threadcachehitrate/) {
+  } elsif ($self->mode =~ /server::instance::innodb::bufferpool::waitfree/) {
+    $self->get_check_status_var_rate('bufferpool_free_waits',
+        'Innodb_buffer_pool_wait_free', 1, 10,
+        '%ld innodb buffer pool waits in %ld seconds (%.2f/sec)'
+    );
+  } elsif ($self->mode =~ /server::instance::innodb::logwaits/) {
+    $self->get_check_status_var_rate('innodb_log_waits',
+        'Innodb_log_waits', 1, 10,
+        '%ld innodb log waits in %ld seconds (%.2f/sec)'
+    );
+  } elsif ($self->mode =~ /server::instance::innodb::needoptimize/) {
   }
 }
 
