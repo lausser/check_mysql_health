@@ -37,6 +37,28 @@ sub init {
   } elsif ($self->mode =~ /^server::instance::replication/) {
     $self->analyze_and_check_replication_subsystem("Classes::Mysql::Component::ReplicationSubsystem");
     $self->reduce_messages_short();
+  } elsif ($self->mode =~ /^server::instance::openfiles/) {
+    $self->{open_files_limit} = $self->get_system_var('open_files_limit');
+    $self->{open_files} = $self->get_status_var('Open_files');
+    $self->{pct_open_files} = 100 * $self->{open_files} / $self->{open_files_limit};
+    $self->set_thresholds(netric => 'pct_open_files',
+        warning => 80, critical => 95);
+    $self->info(
+        sprintf "%.2f%% of the open files limit reached (%d of max. %d)",
+        $self->{pct_open_files},
+        $self->{open_files}, $self->{open_files_limit});
+
+    $self->add_message($self->check_thresholds($self->{pct_open_files}));
+    $self->add_perfdata(
+        label => "pct_open_files",
+        value => $self->{pct_open_files},
+    );
+    $self->add_perfdata(
+      label => 'open_files',
+      value => $self->{open_files},
+      warning => ($self->get_thresholds())[0] * $self->{open_files_limit} / 100,
+      critical => ($self->get_thresholds())[1] * $self->{open_files_limit} / 100,
+    
   } else {
     $self->no_such_mode();
   }
