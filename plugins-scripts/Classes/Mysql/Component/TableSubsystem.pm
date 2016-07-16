@@ -4,7 +4,6 @@ use strict;
 
 sub init {
   my $self = shift;
-printf "%s\n", $self->mode();
   if ($self->mode =~ /server::instance::tablecachehitrate/) {
     $self->{open_tables} = $self->get_status_var('Open_tables');
     $self->{opened_tables} = $self->get_status_var('Opened_tables');
@@ -61,16 +60,16 @@ printf "%s\n", $self->mode();
     $self->valdiff({ name => 'table_locks_waited' },
         qw(table_locks_waited table_locks_immediate));
     eval {
-      $self->{table_lock_contention} =
+      $self->{tablelock_contention} =
           100 * $self->{table_locks_waited} /
           ($self->{table_locks_waited} + $self->{table_locks_immediate});
     };
-    $self->{table_lock_contention} = 0 if $@ =~ /division/;
+    $self->{tablelock_contention} = 0 if $@ =~ /division/;
     if ($self->get_variable('uptime') > 10800) { # MySQL Bug #30599
-      $self->check_var('table_lock_contention', 1, 2,
-          'table lock contention %.2f%%');
+      $self->check_var('tablelock_contention', 1, 2,
+          'table lock contention %.2f%%', '%');
     } else {
-      $self->set_thresholds(metric => 'table_lock_contention',
+      $self->set_thresholds(metric => 'tablelock_contention',
           warning => 1, critical => 2);
       $self->add_ok('table lock contention %.2f%% (uptime < 10800)');
     }
