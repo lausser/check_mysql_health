@@ -175,7 +175,6 @@ SKIP: {
   cmp_ok($result->return_code, "<=", 2, "Success index-usage");
   like($result->output, "/(OK|WARNING|CRITICAL) - index usage  [\\d\\.]+% \\| 'index_usage'=[\\d\\.]+%;100:;99:;0;100/", "Expected index-usage message");
   diag($result->output);
-exit;
 
   $result = NPTest->testCmd("check_mysql_health $host_login --mode tmp-disk-tables --warning 10 --critical 30");
   cmp_ok($result->return_code, "==", 0, "Success tmp-disk-tables");
@@ -186,13 +185,13 @@ exit;
   cmp_ok($result->return_code, "==", 0, "Success table-fragmentation");
   like($result->output, "/xxx/", "Expected table-fragmentation message");
   diag($result->output);
-exit;
+
   $result = NPTest->testCmd("check_mysql_health $host_login --mode open-files --warning 10 --critical 30");
   cmp_ok($result->return_code, "==", 0, "Success open-files");
   like($result->output, "/xxx/", "Expected open-files message");
   diag($result->output);
 
-  $result = NPTest->testCmd("check_mysql_health $host_login --mode slow-queries --warning 10 --critical 30 -vvvvvvvvvvvvvvvvvv");
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode slow-queries --warning 10 --critical 30");
   cmp_ok($result->return_code, "==", 0, "Success slow-queries");
   like($result->output, "/xxx/", "Expected slow-queries message");
   diag($result->output);

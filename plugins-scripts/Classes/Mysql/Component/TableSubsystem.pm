@@ -111,6 +111,16 @@ sub init {
     };
     $self->{index_usage} = 0 if $@ =~ /division/;
     $self->check_var('index_usage', '90:', '80:', 'index usage  %.2f%%', '%');
+  } elsif ($self->mode =~ /server::instance::tabletmpondisk/) {
+    $self->{created_tmp_tables} = $self->get_status_var('Created_tmp_tables');
+    $self->{created_tmp_disk_tables} = $self->get_status_var('Created_tmp_disk_tables');
+    $self->valdiff({ name => 'pct_tmp_table_on_disk' }, qw(created_tmp_tables created_tmp_disk_tables));
+    eval {
+      $self->{pct_tmp_table_on_disk} = 100 * $self->{delta_created_tmp_disk_tables} /
+          $self->{delta_created_tmp_tables};
+    };
+    $self->{pct_tmp_table_on_disk} = 0 if $@ =~ /division/;
+    $self->check_var('pct_tmp_table_on_disk', 25, 50, ['%.2f%% of %d tables were created on disk', 'delta_created_tmp_tables'], '%');
   } elsif ($self->mode =~ /server::instance::needoptimize/) {
     $self->{fragmented} = [];
     #http://www.electrictoolbox.com/optimize-tables-mysql-php/
@@ -120,7 +130,7 @@ sub init {
     foreach (@result) {
       my ($name, $engine, $data_length, $data_free) =
           ($_->[0], $_->[1], $_->[6 ], $_->[9]);
-      next if ($params{name} && $params{name} ne $name);
+      next if $self->filter();
       my $fragmentation = $data_length ? $data_free * 100 / $data_length : 0;
       push(@{$self->{fragmented}},
           [$name, $fragmentation, $data_length, $data_free]);
@@ -129,7 +139,7 @@ sub init {
         $self->add_nagios(
             $self->check_thresholds($_->[1], 10, 25),
             sprintf "table %s is %.2f%% fragmented", $_->[0], $_->[1]);
-        if ($params{name}) {
+        if ($self->opts->name) {
           $self->add_perfdata(sprintf "'%s_frag'=%.2f%%;%d;%d",
               $_->[0], $_->[1], $self->{warningrange}, $self->{criticalrange});
         }

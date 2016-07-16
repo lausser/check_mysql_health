@@ -58,7 +58,7 @@ sub init {
       value => $self->{open_files},
       warning => ($self->get_thresholds())[0] * $self->{open_files_limit} / 100,
       critical => ($self->get_thresholds())[1] * $self->{open_files_limit} / 100,
-    
+    );
   } else {
     $self->no_such_mode();
   }
@@ -152,7 +152,13 @@ sub get_check_status_var_sec {
 sub check_var {
   my ($self, $var, $warn, $crit, $text, $uom) = @_;
   $self->set_thresholds(metric => $var, warning => $warn, critical => $crit);
-  $self->add_info(sprintf $text, $self->{$var});
+  if (ref($text) eq 'ARRAY') {
+    my @args = ($self->{$var});
+    map { push(@args, $self->{$_}); } splice(@{$text}, 1);
+    $self->add_info(sprintf $text->[0], @args);
+  } else {
+    $self->add_info(sprintf $text, $self->{$var});
+  }
   $self->add_message($self->check_thresholds(
       metric => $var, value => $self->{$var}));
   $self->add_perfdata(
