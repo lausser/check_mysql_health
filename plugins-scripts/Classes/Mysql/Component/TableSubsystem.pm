@@ -71,7 +71,8 @@ sub init {
     } else {
       $self->set_thresholds(metric => 'tablelock_contention',
           warning => 1, critical => 2);
-      $self->add_ok('table lock contention %.2f%% (uptime < 10800)');
+      $self->add_ok(sprintf 'table lock contention %.2f%% (uptime < 10800)',
+          $self->{tablelock_contention});
     }
   } elsif ($self->mode =~ /server::instance::innodb::logwaits/) {
     $self->get_check_status_var_rate('innodb_log_waits',

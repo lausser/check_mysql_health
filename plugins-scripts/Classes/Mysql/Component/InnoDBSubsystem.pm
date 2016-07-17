@@ -4,9 +4,7 @@ use strict;
 
 sub init {
   my $self = shift;
-  if ($self->version_is_minimum("5.1")) {
-    $self->{has_innodb} = $self->get_system_var('have_innodb');
-  } else {
+  if ($self->version_is_minimum("5.6")) {
     ($self->{has_innodb}) = $self->fetchrow_array(q{
         SELECT
           ENGINE, SUPPORT
@@ -15,6 +13,8 @@ sub init {
         WHERE
           ENGINE='InnoDB'
     });
+  } else {
+    $self->{has_innodb} = $self->get_system_var('have_innodb');
   }
   if ($self->{has_innodb} eq "NO") {
     $self->add_critical("the innodb engine has a problem (have_innodb=no)");
