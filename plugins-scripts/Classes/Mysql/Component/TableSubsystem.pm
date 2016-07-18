@@ -126,8 +126,12 @@ sub init {
     $self->{fragmented} = [];
     #http://www.electrictoolbox.com/optimize-tables-mysql-php/
     my  @result = $self->fetchall_array(q{
-        SHOW TABLE STATUS
-    });
+        -- SHOW TABLE STATUS
+        SELECT
+            table_name, engine, data_length, data_free
+        FROM
+            information_schema.tables
+    }.(! $self->opts->database ? '' : sprintf "WHERE table_schema = '%s'", $self->opts->database));
     foreach (@result) {
       my ($name, $engine, $data_length, $data_free) =
           ($_->[0], $_->[1], $_->[6 ], $_->[9]);
