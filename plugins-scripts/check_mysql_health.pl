@@ -130,31 +130,31 @@ $plugin->add_mode(
     help => 'InnoDB log waits because of a too small log buffer',
 );
 $plugin->add_mode(
-    internal => 'server::instance::tablecachehitrate',
+    internal => 'server::instance::table::cachehitrate',
     spec => 'tablecache-hitrate',
     alias => undef,
     help => 'Table cache hitrate',
 );
 $plugin->add_mode(
-    internal => 'server::instance::tablelockcontention',
+    internal => 'server::instance::table::lockcontention',
     spec => 'table-lock-contention',
     alias => undef,
     help => 'Table lock contention',
 );
 $plugin->add_mode(
-    internal => 'server::instance::tableindexusage',
+    internal => 'server::instance::table::indexusage',
     spec => 'index-usage',
     alias => undef,
     help => 'Usage of indices',
 );
 $plugin->add_mode(
-    internal => 'server::instance::tabletmpondisk',
+    internal => 'server::instance::table::tmpondisk',
     spec => 'tmp-disk-tables',
     alias => undef,
     help => 'Percent of temp tables created on disk',
 );
 $plugin->add_mode(
-    internal => 'server::instance::needoptimize',
+    internal => 'server::instance::table::needoptimize',
     spec => 'table-fragmentation',
     alias => undef,
     help => 'Show tables which should be optimized',

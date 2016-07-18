@@ -177,15 +177,15 @@ SKIP: {
   diag($result->output);
 
   $result = NPTest->testCmd("check_mysql_health $host_login --mode tmp-disk-tables --warning 10 --critical 30");
-  cmp_ok($result->return_code, "==", 0, "Success tmp-disk-tables");
-  like($result->output, "/xxx/", "Expected tmp-disk-tables message");
+  cmp_ok($result->return_code, "<=", 2, "Success tmp-disk-tables");
+  like($result->output, "/(OK|WARNING|CRITICAL) - [\\d\\.]+% of \\d+ tables were created on disk | 'pct_tmp_table_on_disk'=[\\d\\.]+%;10;30;0;100/", "Expected tmp-disk-tables message");
   diag($result->output);
 
   $result = NPTest->testCmd("check_mysql_health $host_login --mode table-fragmentation --warning 10 --critical 30");
   cmp_ok($result->return_code, "==", 0, "Success table-fragmentation");
   like($result->output, "/xxx/", "Expected table-fragmentation message");
   diag($result->output);
-
+exit;
   $result = NPTest->testCmd("check_mysql_health $host_login --mode open-files --warning 10 --critical 30");
   cmp_ok($result->return_code, "==", 0, "Success open-files");
   like($result->output, "/xxx/", "Expected open-files message");

@@ -4,7 +4,7 @@ use strict;
 
 sub init {
   my $self = shift;
-  if ($self->mode =~ /server::instance::tablecachehitrate/) {
+  if ($self->mode =~ /server::instance::table::cachehitrate/) {
     $self->{open_tables} = $self->get_status_var('Open_tables');
     $self->{opened_tables} = $self->get_status_var('Opened_tables');
     if ($self->version_is_minimum("5.1.3")) {
@@ -54,7 +54,7 @@ sub init {
           uom => '%',
       );
     }
-  } elsif ($self->mode =~ /server::instance::tablelockcontention/) {
+  } elsif ($self->mode =~ /server::instance::table::lockcontention/) {
     $self->{table_locks_waited} = $self->get_status_var('Table_locks_waited');
     $self->{table_locks_immediate} = $self->get_status_var('Table_locks_immediate');
     $self->valdiff({ name => 'table_locks_waited' },
@@ -79,7 +79,7 @@ sub init {
         'Innodb_log_waits', 1, 10,
         '%ld innodb log waits in %ld seconds (%.2f/sec)'
     );
-  } elsif ($self->mode =~ /server::instance::tableindexusage/) {
+  } elsif ($self->mode =~ /server::instance::table::indexusage/) {
     # http://johnjacobm.wordpress.com/2007/06/
     # formula for calculating the percentage of full table scans
     foreach (['handler_read_first', 'Handler_read_first'],
@@ -112,7 +112,7 @@ sub init {
     };
     $self->{index_usage} = 0 if $@ =~ /division/;
     $self->check_var('index_usage', '90:', '80:', 'index usage  %.2f%%', '%');
-  } elsif ($self->mode =~ /server::instance::tabletmpondisk/) {
+  } elsif ($self->mode =~ /server::instance::table::tmpondisk/) {
     $self->{created_tmp_tables} = $self->get_status_var('Created_tmp_tables');
     $self->{created_tmp_disk_tables} = $self->get_status_var('Created_tmp_disk_tables');
     $self->valdiff({ name => 'pct_tmp_table_on_disk' }, qw(created_tmp_tables created_tmp_disk_tables));
@@ -122,7 +122,7 @@ sub init {
     };
     $self->{pct_tmp_table_on_disk} = 0 if $@ =~ /division/;
     $self->check_var('pct_tmp_table_on_disk', 25, 50, ['%.2f%% of %d tables were created on disk', 'delta_created_tmp_tables'], '%');
-  } elsif ($self->mode =~ /server::instance::needoptimize/) {
+  } elsif ($self->mode =~ /server::instance::table::needoptimize/) {
     $self->{fragmented} = [];
     #http://www.electrictoolbox.com/optimize-tables-mysql-php/
     my  @result = $self->fetchall_array(q{
