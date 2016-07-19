@@ -17,7 +17,7 @@ use vars qw($tests);
 
 plan skip_all => "check_mysql_health not compiled" unless (-x "../plugins-scripts/check_mysql_health" || -x "plugins-scripts/check_mysql_health");
 
-plan tests => 51;
+plan tests => 62;
 
 my $mysqlserver = getTestParameter(
     "NP_MYSQL_SERVER",
@@ -182,35 +182,33 @@ SKIP: {
   diag($result->output);
 
   $result = NPTest->testCmd("check_mysql_health $host_login --mode table-fragmentation --warning 10 --critical 30");
-  cmp_ok($result->return_code, "==", 0, "Success table-fragmentation");
-  like($result->output, "/xxx/", "Expected table-fragmentation message");
+  cmp_ok($result->return_code, "<=", 2, "Success table-fragmentation");
+  like($result->output, "/table SESSION_VARIABLES is [\\d\\.]+% fragmented/", "Expected table-fragmentation message");
   diag($result->output);
-exit;
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode table-fragmentation --warning 10 --critical 30 --database mysql");
+  cmp_ok($result->return_code, "<=", 2, "Success table-fragmentation");
+  like($result->output, "/table user is [\\d\\.]+% fragmented/", "Expected table-fragmentation message");
+  diag($result->output);
+
+  $result = NPTest->testCmd("check_mysql_health $host_login --mode table-fragmentation --warning 10 --critical 30 --database ''");
+  cmp_ok($result->return_code, "<=", 2, "Success table-fragmentation");
+  like($result->output, "/information_schema\.SESSION_VARIABLES is [\\d\\.]+% fragmented/", "Expected table-fragmentation message");
+  diag($result->output);
+
   $result = NPTest->testCmd("check_mysql_health $host_login --mode open-files --warning 10 --critical 30");
-  cmp_ok($result->return_code, "==", 0, "Success open-files");
-  like($result->output, "/xxx/", "Expected open-files message");
+  cmp_ok($result->return_code, "<=", 2, "Success open-files");
+  like($result->output, "/(OK|WARNING|CRITICAL) - [\\d\\.]+% of the open files limit reached (\\d+ of max. \\d+) | 'pct_open_files'=[\\d\\.]+%;10;30;0;100 'open_files'=\\d+;[\\d\\.]+;[\\d\\.]+;0;\\d+/", "Expected open-files message");
   diag($result->output);
 
   $result = NPTest->testCmd("check_mysql_health $host_login --mode slow-queries --warning 10 --critical 30");
-  cmp_ok($result->return_code, "==", 0, "Success slow-queries");
-  like($result->output, "/xxx/", "Expected slow-queries message");
+  cmp_ok($result->return_code, ">=", 0, "Success slow-queries");
+  like($result->output, "/(OK|WARNING|CRITICAL) - \\d+ slow queries in \\d+ seconds \\([\\d\\.]+\\/sec\\) \\| 'slow_queries_rate'=[\\d\\.]+;10;30;;/", "Expected slow-queries message");
   diag($result->output);
-  ok( $result->output =~ /Load variable Slow_queries \(([0-9]+)\) /);
-  my $slow_queries_last = $1;
-  ok( $result->output =~ /Result column 1 returns value ([0-9]+) /);
-  my $slow_queries = $1;
-  my $delta = $slow_queries - $slow_queries_last;
-  ok( $result->output =~ /OK - ([0-9]+) slow queries/);
-  cmp_ok($1, "==", $delta);
-
 
   $result = NPTest->testCmd("check_mysql_health $host_login --mode long-running-procs --warning 10 --critical 30");
   cmp_ok($result->return_code, "==", 0, "Success long-running-procs");
-  like($result->output, "/xxx/", "Expected long-running-procs message");
-  diag($result->output);
-
-  $result = NPTest->testCmd("check_mysql_health $host_login --mode cluster-ndbd-running --warning 10 --critical 30");
-  cmp_ok($result->return_code, "==", 0, "Success cluster-ndbd-running");
-  like($result->output, "/xxx/", "Expected cluster-ndbd-running message");
+  like($result->output, "/OK - \\d+ long running processes | 'long_running_procs'=\\d+;10;30;;/", "Expected long-running-procs message");
   diag($result->output);
 }
+

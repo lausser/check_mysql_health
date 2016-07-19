@@ -123,33 +123,60 @@ sub init {
     $self->{pct_tmp_table_on_disk} = 0 if $@ =~ /division/;
     $self->check_var('pct_tmp_table_on_disk', 25, 50, ['%.2f%% of %d tables were created on disk', 'delta_created_tmp_tables'], '%');
   } elsif ($self->mode =~ /server::instance::table::needoptimize/) {
-    $self->{fragmented} = [];
     #http://www.electrictoolbox.com/optimize-tables-mysql-php/
-    my  @result = $self->fetchall_array(q{
+    my $sql = q{
         -- SHOW TABLE STATUS
         SELECT
-            table_name, engine, data_length, data_free
+            table_schema, table_name, engine, data_length, index_length, data_free
         FROM
             information_schema.tables
-    }.(! $self->opts->database ? '' : sprintf "WHERE table_schema = '%s'", $self->opts->database));
-    foreach (@result) {
-      my ($name, $engine, $data_length, $data_free) =
-          ($_->[0], $_->[1], $_->[6 ], $_->[9]);
-      next if $self->filter();
-      my $fragmentation = $data_length ? $data_free * 100 / $data_length : 0;
-      push(@{$self->{fragmented}},
-          [$name, $fragmentation, $data_length, $data_free]);
-    }
-      foreach (@{$self->{fragmented}}) {
-        $self->add_nagios(
-            $self->check_thresholds($_->[1], 10, 25),
-            sprintf "table %s is %.2f%% fragmented", $_->[0], $_->[1]);
-        if ($self->opts->name) {
-          $self->add_perfdata(sprintf "'%s_frag'=%.2f%%;%d;%d",
-              $_->[0], $_->[1], $self->{warningrange}, $self->{criticalrange});
-        }
-      }
+    };
+    my $columns = ['table_schema', 'table_name', 'engine', 'data_length', 'index_length', 'data_free', ];
+    my $filter = sub {
+      my $o = shift;
+      $self->filter_name($o->{table_name}) &&
+          ($self->filter_namex($self->opts->database, $o->{table_schema} ||
+          defined $self->opts->database && $self->opts->database eq ''));
+    };
+    $self->get_db_tables([
+      ['tables', $sql, 'Classes::Mysql::Component::TableSubsystem::Table', $filter, $columns ],
+    ]);
+    $self->add_unknown('no tables found') if ! scalar(@{$self->{tables}});
+  }
+}
 
+package Classes::Mysql::Component::TableSubsystem::Table;
+our @ISA = qw(Monitoring::GLPlugin::DB::TableItem);
+use strict;
+
+sub finish {
+  my ($self) = @_;
+  eval {
+    $self->{fragmentation} = 100 *
+        $self->{data_free} / ($self->{data_free} + $self->{data_length} + $self->{index_length});
+  };
+  $self->{fragmentation} = 0 if $@ =~ /division/;
+  $self->{full_name} = ($self->opts->database eq '') ?
+      $self->{table_schema}.'.'.$self->{table_name} :
+      $self->{table_name};
+}
+
+sub check {
+  my ($self) = @_;
+  $self->add_info(sprintf 'table %s is %.2f%% fragmented',
+      $self->{full_name}, $self->{fragmentation});
+  $self->set_thresholds(metric => $self->{full_name}.'_frag',
+      warning => 10, critical => 25);
+  $self->add_message($self->check_thresholds(
+      metric => $self->{full_name}.'_frag',
+      value => $self->{fragmentation},
+  ));
+  if ($self->opts->name) {
+    $self->add_perfdata(
+        label => $self->{full_name}.'_frag',
+        value => $self->{fragmentation},
+        uom => '%',
+    );
   }
 }
 
