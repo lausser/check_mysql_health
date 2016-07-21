@@ -1,3 +1,5 @@
+* 3.0
+  new structure, using Monitoring::GLPlugin
 * 2.2.2 2016-05-13
   handle permission/syntax problems for mode sql
 * 2.2.1 2015-08-18

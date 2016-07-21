@@ -5,7 +5,10 @@ use strict;
 
 sub classify {
   my $self = shift;
-  if ($self->opts->method eq "dbi") {
+  if ($self->opts->mode =~ /cluster/) {
+    bless $self, "Classes::Cluster";
+    $self->classify();
+  } elsif ($self->opts->method eq "dbi") {
     bless $self, "Classes::Mysql::DBI";
     if (! $self->opts->hostname ||
         ! $self->opts->username || ! $self->opts->password) {

@@ -1,0 +1,16 @@
+#! /bin/bash
+cat <<EOCMD
+Connected to Management Server at: localhost:1186
+Cluster Configuration
+---------------------
+[ndbd(NDB)]     2 node(s)
+id=2 (not connected, accepting connect from localhost)
+id=3 (not connected, accepting connect from localhost)
+
+[ndb_mgmd(MGM)] 1 node(s)
+id=1    @localhost  (mysql-5.1.23 ndb-6.2.15)
+
+[mysqld(API)]   1 node(s)
+id=4 (not connected, accepting connect from localhost)
+
+EOCMD

@@ -1,5 +1,6 @@
 libexec_SCRIPTS=check_mysql_health
 GL_MODULES=\
+  ../GLPlugin/lib/Monitoring/GLPlugin/Commandline/Extraopts.pm \
   ../GLPlugin/lib/Monitoring/GLPlugin/Commandline/Getopt.pm \
   ../GLPlugin/lib/Monitoring/GLPlugin/Commandline.pm \
   ../GLPlugin/lib/Monitoring/GLPlugin.pm \
@@ -22,6 +23,8 @@ EXTRA_MODULES=\
   Classes/Mysql/Mysql.pm \
   Classes/Mysql/DBI.pm \
   Classes/Mysql.pm \
+  Classes/Cluster/NDB.pm \
+  Classes/Cluster.pm \
   Classes/Device.pm
 
 

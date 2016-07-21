@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = plugins-scripts t
+SUBDIRS = plugins-scripts
 DOS2UNIX=$(shell which dos2unix || which fromdos)
 EXTRA_DIST = contrib t
 
