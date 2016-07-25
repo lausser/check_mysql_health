@@ -10,6 +10,7 @@ our $AUTOLOAD;
 
 sub init {
   my $self = shift;
+  $self->override_opt('lookback', 3600);
   if ($self->mode =~ /^server::uptime/) {
     $self->add_info(sprintf "database is up since %d minutes", 
         $self->get_variable('uptime'));
