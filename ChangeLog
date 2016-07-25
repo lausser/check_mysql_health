@@ -1,3 +1,5 @@
+* 3.0.0.1
+  default --lookback 3600
 * 3.0
   new structure, using Monitoring::GLPlugin
 * 2.2.2 2016-05-13
