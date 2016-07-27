@@ -33,8 +33,7 @@ sub init {
           100 * $self->{bufferpool_reads} /
           $self->{bufferpool_read_requests};
     };
-    $self->{bufferpool_hitrate} = 0 if $@ =~ /division/;
-
+    $self->recover_with_last_val('bufferpool_hitrate');
     $self->set_thresholds(metric => 'bufferpool_hitrate',
         warning => '99:', critical => '95:');
     $self->add_message($self->check_thresholds(

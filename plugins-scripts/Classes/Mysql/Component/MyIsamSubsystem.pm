@@ -15,8 +15,7 @@ sub init {
           100 * $self->{delta_key_reads} /
           $self->{delta_key_read_requests};
     };
-    $self->{keycache_hitrate} = 0 if $@ =~ /division/;
-
+    $self->recover_with_last_val('keycache_hitrate');
     $self->set_thresholds(metric => 'keycache_hitrate',
         warning => '99:', critical => '95:');
     $self->add_message($self->check_thresholds(

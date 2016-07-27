@@ -167,6 +167,24 @@ sub get_check_status_var_rate {
   );
 }
 
+sub recover_with_last_val {
+  # if the calculation of $self->{$var} failed (database inactivity and division by 0)
+  # get the last saved value. (or 0 if even this fails)
+  # save a good value
+  my ($self, $var) = @_;
+  if ($@ =~ /division/) {
+    $self->debug('calculation of '.$var.' failed. get saved value');
+    eval {
+      $self->{$var} = $self->load_state(name => 'recover_'.$var)->{$var};
+    };
+    $self->{$var} = 0 if $@;
+  } else {
+    $self->save_state(name => 'recover_'.$var, save => {
+        $var => $self->{$var},
+    });
+  }
+}
+
 sub add_dbi_funcs {
   my $self = shift;
   $self->SUPER::add_dbi_funcs() if $self->SUPER::can('add_dbi_funcs');

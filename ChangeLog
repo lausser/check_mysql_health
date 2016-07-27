@@ -1,3 +1,5 @@
+* 3.0.0.3
+  use the last good value for hitrates of there is absolutely no database activity
 * 3.0.0.2
   default --lookback 3600 only if not given on the commandline
   fix version string

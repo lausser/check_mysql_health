@@ -28,13 +28,12 @@ sub init {
     $self->{connections} = $self->get_status_var('Connections');
     $self->valdiff({ name => 'threads_created_connections' },
         qw(threads_created connections));
-    if ($self->{delta_connections} > 0) {
+    eval {
       $self->{threadcache_hitrate} =
           100 - ($self->{delta_threads_created} * 100.0 /
           $self->{delta_connections});
-    } else {
-      $self->{threadcache_hitrate} = 100;
-    }
+    };
+    $self->recover_with_last_val('threadcache_hitrate');
     $self->set_thresholds(metric => 'threadcache_hitrate',
         warning => '90:', critical => '80:');
     $self->add_message($self->check_thresholds(

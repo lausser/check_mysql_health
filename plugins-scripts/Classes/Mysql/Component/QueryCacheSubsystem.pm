@@ -21,7 +21,7 @@ sub init {
           100 * $self->{delta_qcache_hits} /
           ($self->{delta_qcache_hits} + $self->{delta_qcache_inserts});
     }; 
-    $self->{querycache_hitrate_mem} = 0 if $@ =~ /division/;
+    $self->recover_with_last_val('querycache_hitrate_mem');
     # Workbench
     # das war das ehem. querycache_hitrate (ohne delta_)
     eval {
@@ -29,7 +29,7 @@ sub init {
           100 * $self->{delta_qcache_hits} /
           ($self->{delta_qcache_hits} + $self->{delta_qcache_inserts} + $self->{delta_qcache_not_cached});
     };
-    $self->{querycache_hitrate_wb} = 0 if $@ =~ /division/;
+    $self->recover_with_last_val('querycache_hitrate_wb');
     # High Performance MySQL v3 page 321
     # mit delta_ war das das ehem. querycache_hitrate_now
     eval {
@@ -37,7 +37,7 @@ sub init {
           100 * $self->{delta_qcache_hits} /
           ($self->{delta_qcache_hits} + $self->{delta_com_select});
     };
-    $self->{querycache_hitrate_hpm} = 0 if $@ =~ /division/;
+    $self->recover_with_last_val('querycache_hitrate_hpm');
     $self->{querycache_hitrate} = $self->{querycache_hitrate_wb};
     $self->set_thresholds(metric => 'qcache_hitrate',
         warning => '90:', critical => '80:');

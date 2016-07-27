@@ -64,7 +64,7 @@ sub init {
           100 * $self->{table_locks_waited} /
           ($self->{table_locks_waited} + $self->{table_locks_immediate});
     };
-    $self->{tablelock_contention} = 0 if $@ =~ /division/;
+    $self->recover_with_last_val('tablelock_contention');
     if ($self->get_variable('uptime') > 10800) { # MySQL Bug #30599
       $self->check_var('tablelock_contention', 1, 2,
           'table lock contention %.2f%%', '%');
@@ -110,7 +110,7 @@ sub init {
             ($self->{delta_handler_read_rnd} + $self->{delta_handler_read_rnd_next}) /
         $delta_reads);
     };
-    $self->{index_usage} = 0 if $@ =~ /division/;
+    $self->recover_with_last_val('index_usage');
     $self->check_var('index_usage', '90:', '80:', 'index usage  %.2f%%', '%');
   } elsif ($self->mode =~ /server::instance::table::tmpondisk/) {
     $self->{created_tmp_tables} = $self->get_status_var('Created_tmp_tables');
@@ -120,7 +120,7 @@ sub init {
       $self->{pct_tmp_table_on_disk} = 100 * $self->{delta_created_tmp_disk_tables} /
           $self->{delta_created_tmp_tables};
     };
-    $self->{pct_tmp_table_on_disk} = 0 if $@ =~ /division/;
+    $self->recover_with_last_val('pct_tmp_table_on_disk');
     $self->check_var('pct_tmp_table_on_disk', 25, 50, ['%.2f%% of %d tables were created on disk', 'delta_created_tmp_tables'], '%');
   } elsif ($self->mode =~ /server::instance::table::needoptimize/) {
     #http://www.electrictoolbox.com/optimize-tables-mysql-php/
@@ -155,7 +155,7 @@ sub finish {
     $self->{fragmentation} = 100 *
         $self->{data_free} / ($self->{data_free} + $self->{data_length} + $self->{index_length});
   };
-  $self->{fragmentation} = 0 if $@ =~ /division/;
+  $self->recover_with_last_val('fragmentation');
   $self->{full_name} = ($self->opts->database eq '') ?
       $self->{table_schema}.'.'.$self->{table_name} :
       $self->{table_name};
