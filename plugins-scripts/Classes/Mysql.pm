@@ -10,7 +10,7 @@ our $AUTOLOAD;
 
 sub init {
   my $self = shift;
-  $self->override_opt('lookback', 3600);
+  $self->override_opt('lookback', 3600) if ! defined $self->opts->lookback;
   if ($self->mode =~ /^server::uptime/) {
     $self->add_info(sprintf "database is up since %d minutes", 
         $self->get_variable('uptime'));
@@ -50,7 +50,7 @@ sub check_version {
   my $self = shift;
   my $version = $self->get_system_var("version");
   $self->set_variable("product", ($version =~ /mariadb/i ? 'mariadb' : 'mysql'));
-  $version =~ s/([\d\.]+)/$1/g;
+  $version =~ s/([\d\.]+).*/$1/g;
   my $uptime = $self->get_status_var("uptime");
   my $os = $self->get_system_var("version_compile_os");
   $self->set_variable("version", $version);
