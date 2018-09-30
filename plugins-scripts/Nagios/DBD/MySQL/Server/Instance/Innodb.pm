@@ -119,8 +119,9 @@ sub init {
       $self->add_nagios_critical("no innodb buffer pool info available");
     } else {
       $self->valdiff(\%params, qw(bufferpool_wait_free));
-      $self->{bufferpool_wait_free_rate} =
-          $self->{delta_bufferpool_wait_free} / $self->{delta_timestamp};
+      $self->{bufferpool_wait_free_rate} = $self->{delta_timestamp} != 0
+        ? $self->{delta_bufferpool_wait_free} / $self->{delta_timestamp}
+        : 0;
     }
   } elsif ($params{mode} =~ /server::instance::innodb::logwaits/) {
     ($dummy, $self->{log_waits})
@@ -131,8 +132,9 @@ sub init {
       $self->add_nagios_critical("no innodb log info available");
     } else {
       $self->valdiff(\%params, qw(log_waits));
-      $self->{log_waits_rate} =
-          $self->{delta_log_waits} / $self->{delta_timestamp};
+      $self->{log_waits_rate} = $self->{delta_timestamp} != 0
+          ? $self->{delta_log_waits} / $self->{delta_timestamp}
+          : 0;
     }
   } elsif ($params{mode} =~ /server::instance::innodb::needoptimize/) {
 #fragmentation=$(($datafree * 100 / $datalength))

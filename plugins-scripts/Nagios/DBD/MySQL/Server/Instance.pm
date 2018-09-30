@@ -49,8 +49,9 @@ sub init {
         SHOW /*!50000 global */ STATUS LIKE 'Threads_created'
     });
     $self->valdiff(\%params, qw(threads_created));
-    $self->{threads_created_per_sec} = $self->{delta_threads_created} /
-        $self->{delta_timestamp};
+    $self->{threads_created_per_sec} = $self->{delta_timestamp} != 0
+        ? $self->{delta_threads_created} / $self->{delta_timestamp}
+        : 0;
   } elsif ($params{mode} =~ /server::instance::runningthreads/) {
     ($dummy, $self->{threads_running}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Threads_running'
@@ -64,15 +65,17 @@ sub init {
         SHOW /*!50000 global */ STATUS LIKE 'Aborted_connects'
     });
     $self->valdiff(\%params, qw(connects_aborted));
-    $self->{connects_aborted_per_sec} = $self->{delta_connects_aborted} /
-        $self->{delta_timestamp};
+    $self->{connects_aborted_per_sec} = $self->{delta_timestamp} != 0
+        ? $self->{delta_connects_aborted} / $self->{delta_timestamp}
+        : 0;
   } elsif ($params{mode} =~ /server::instance::abortedclients/) {
     ($dummy, $self->{clients_aborted}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Aborted_clients'
     });
     $self->valdiff(\%params, qw(clients_aborted));
-    $self->{clients_aborted_per_sec} = $self->{delta_clients_aborted} /
-        $self->{delta_timestamp};
+    $self->{clients_aborted_per_sec} = $self->{delta_timestamp} != 0
+        ? $self->{delta_clients_aborted} / $self->{delta_timestamp}
+        : 0;
   } elsif ($params{mode} =~ /server::instance::threadcachehitrate/) {
     ($dummy, $self->{threads_created}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Threads_created'
@@ -90,8 +93,9 @@ sub init {
     }
     $self->{threadcache_hitrate} = 100 -
         ($self->{threads_created} * 100.0 / $self->{connections});
-    $self->{connections_per_sec} = $self->{delta_connections} /
-        $self->{delta_timestamp};
+    $self->{connections_per_sec} = $self->{delta_timestamp} != 0
+        ? $self->{delta_connections} / $self->{delta_timestamp}
+        : 0;
   } elsif ($params{mode} =~ /server::instance::querycachehitrate/) {
     ($dummy, $self->{qcache_inserts}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Qcache_inserts'
@@ -124,22 +128,25 @@ sub init {
         100 * $self->{qcache_hits} /
             ($self->{qcache_not_cached} + $self->{qcache_inserts} + $self->{qcache_hits}) :
         0;
-    $self->{selects_per_sec} =
-        $self->{delta_com_select} / $self->{delta_timestamp};
+    $self->{selects_per_sec} = $self->{delta_timestamp} != 0
+        ? $self->{delta_com_select} / $self->{delta_timestamp}
+        : 0;
   } elsif ($params{mode} =~ /server::instance::querycachelowmemprunes/) {
     ($dummy, $self->{lowmem_prunes}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Qcache_lowmem_prunes'
     });
     $self->valdiff(\%params, qw(lowmem_prunes));
-    $self->{lowmem_prunes_per_sec} = $self->{delta_lowmem_prunes} /
-        $self->{delta_timestamp};
+    $self->{lowmem_prunes_per_sec} = $self->{delta_timestamp} != 0
+        ? $self->{delta_lowmem_prunes} / $self->{delta_timestamp}
+        : 0;
   } elsif ($params{mode} =~ /server::instance::slowqueries/) {
     ($dummy, $self->{slow_queries}) = $self->{handle}->fetchrow_array(q{
         SHOW /*!50000 global */ STATUS LIKE 'Slow_queries'
     });
     $self->valdiff(\%params, qw(slow_queries));
-    $self->{slow_queries_per_sec} = $self->{delta_slow_queries} /
-        $self->{delta_timestamp};
+    $self->{slow_queries_per_sec} = $self->{delta_timestamp} != 0
+        ? $self->{delta_slow_queries} / $self->{delta_timestamp}
+        : 0;
   } elsif ($params{mode} =~ /server::instance::longprocs/) {
     if (DBD::MySQL::Server::return_first_server()->version_is_minimum("5.1")) {
       ($self->{longrunners}) = $self->{handle}->fetchrow_array(qq(
