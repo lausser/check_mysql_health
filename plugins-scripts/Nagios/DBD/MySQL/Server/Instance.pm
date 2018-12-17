@@ -289,8 +289,8 @@ sub init {
     $self->{fragmented} = [];
     #http://www.electrictoolbox.com/optimize-tables-mysql-php/
     my  @result = $self->{handle}->fetchall_array(q{
-        SHOW TABLE STATUS
-    });
+SHOW TABLE STATUS WHERE Data_free / Data_length > 0.1 AND Data_free > 8388608
+});
     foreach (@result) {
       my ($name, $engine, $data_length, $data_free) =
           ($_->[0], $_->[1], $_->[6 ], $_->[9]);

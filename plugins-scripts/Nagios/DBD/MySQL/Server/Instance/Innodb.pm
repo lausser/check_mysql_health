@@ -139,7 +139,7 @@ sub init {
 
 #http://www.electrictoolbox.com/optimize-tables-mysql-php/
     my  @result = $self->{handle}->fetchall_array(q{
-SHOW TABLE STATUS WHERE Data_free / Data_length > 0.1 AND Data_free > 102400
+SHOW TABLE STATUS WHERE Data_free / Data_length > 0.1 AND Data_free > 8388608
 });
 printf "%s\n", Data::Dumper::Dumper(\@result);
 
