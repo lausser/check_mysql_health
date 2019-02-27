@@ -44,6 +44,10 @@ sub new {
     socket => $params{socket},
     username => $params{username},
     password => $params{password},
+    mysql_ssl => $params{mysql_ssl},
+    mysql_ssl_client_key => $params{mysql_ssl_client_key},
+    mysql_ssl_client_cert => $params{mysql_ssl_client_cert},
+    mysql_ssl_ca_file => $params{mysql_ssl_ca_file},
     replication_user => $params{replication_user},
     mycnf => $params{mycnf},
     mycnfgroup => $params{mycnfgroup},
@@ -927,6 +931,10 @@ sub new {
     socket => $params{socket},
     username => $params{username},
     password => $params{password},
+    mysql_ssl => $params{mysql_ssl},
+    mysql_ssl_client_key => $params{mysql_ssl_client_key},
+    mysql_ssl_client_cert => $params{mysql_ssl_client_cert},
+    mysql_ssl_ca_file => $params{mysql_ssl_ca_file},
     mycnf => $params{mycnf},
     mycnfgroup => $params{mycnfgroup},
     handle => undef,
@@ -986,6 +994,18 @@ sub init {
           unless $self->{socket} || $self->{hostname} eq 'localhost';
       $self->{dsn} .= sprintf ";mysql_socket=%s", $self->{socket} 
           if $self->{socket};
+    }
+    if ($self->{mysql_ssl}) {
+      $self->{dsn} .= sprintf ";mysql_ssl=%s", $self->{mysql_ssl};
+      if ($self->{mysql_ssl_client_key}) {
+      	$self->{dsn} .= sprintf ";mysql_ssl_client_key=%s", $self->{mysql_ssl_client_key};
+      }
+      if ($self->{mysql_ssl_client_cert}) {
+        $self->{dsn} .= sprintf ";mysql_ssl_client_cert=%s", $self->{mysql_ssl_client_cert};
+      }
+      if ($self->{mysql_ssl_client_ca_file}) {
+        $self->{dsn} .= sprintf ";mysql_ssl_client_ca_file=%s", $self->{mysql_ssl_client_ca_file};
+      }
     }
   }
   if (! exists $self->{errstr}) {

@@ -174,7 +174,7 @@ sub print_usage () {
   Usage:
     $PROGNAME [-v] [-t <timeout>] [[--hostname <hostname>] 
         [--port <port> | --socket <socket>]
-        --username <username> --password <password>] --mode <mode>
+        --username <username> --password <password> --mysql_ssl <1> --mysql_ssl_client_key <path> --mysql_ssl_client_cert <path> --mysql_ssl_ca_file <path>] --mode <mode>
         [--method mysql]
     $PROGNAME [-h | --help]
     $PROGNAME [-V | --version]
@@ -198,6 +198,14 @@ sub print_usage () {
        the warning range
     --critical
        the critical range
+    --mysql_ssl
+       Use SSL
+    --mysql_ssl_client_key
+       Set Up Client Key
+    --mysql_ssl_client_cert
+       Set Up Client Cert
+    --mysql_ssl_ca_file
+       Set Up CA        
     --mode
        the mode of the plugin. select one of the following keywords:
 EOUS
@@ -294,6 +302,10 @@ my @params = (
     "hostname|H=s",
     "database=s",
     "port|P=s",
+    "mysql_ssl=s",
+    "mysql_ssl_client_key=s",
+    "mysql_ssl_client_cert=s",
+    "mysql_ssl_ca_file=s",
     "socket|S=s",
     "username|u=s",
     "password|p=s",
@@ -557,6 +569,18 @@ my %params = (
     password => $commandline{password} || 
         $ENV{NAGIOS__SERVICEMYSQL_PASS} ||
         $ENV{NAGIOS__HOSTMYSQL_PASS},
+    mysql_ssl => $commandline{mysql_ssl} ||
+        $ENV{NAGIOS__SERVICEMYSQL_SSL} ||
+        $ENV{NAGIOS__HOSTMYSQL_SSL},
+    mysql_ssl_client_key => $commandline{mysql_ssl_client_key} ||
+        $ENV{NAGIOS__SERVICEMYSQL_SSL_CLIENT_KEY} ||
+        $ENV{NAGIOS__HOSTMYSQL_SSL_CLIENT_KEY},
+    mysql_ssl_client_cert => $commandline{mysql_ssl_client_cert} ||
+        $ENV{NAGIOS__SERVICEMYSQL_SSL_CLIENT_CERT} ||
+        $ENV{NAGIOS__HOSTMYSQL_SSL_CLIENT_CERT},
+    mysql_ssl_ca_file => $commandline{mysql_ssl_ca_file} ||
+        $ENV{NAGIOS__SERVICEMYSQL_SSL_CA} ||
+        $ENV{NAGIOS__HOSTMYSQL_SSL_CA},    
     replication_user => $commandline{'replication-user'} || 'replication',
     mycnf => $commandline{mycnf} || 
         $ENV{NAGIOS__SERVICEMYSQL_MYCNF} ||
