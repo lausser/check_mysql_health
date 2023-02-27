@@ -314,7 +314,6 @@ my @params = (
     "method=s",
     "runas|r=s",
     "scream",
-    "shell",
     "eyecandy",
     "encode",
     "units=s",
@@ -473,11 +472,6 @@ if ($needs_restart) {
     # help loading e.g. libclntsh.so
   }
   exit;
-}
-
-if (exists $commandline{shell}) {
-  # forget what you see here.
-  system("/bin/sh");
 }
 
 if (! exists $commandline{statefilesdir}) {
